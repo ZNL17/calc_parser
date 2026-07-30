@@ -36,31 +36,14 @@ int main(int argc, char *argv[]) {
   if (argc != 2)
     return EXIT_FAILURE;
   char *content = argv[1];
-  char *copy = content;
-  while (*copy) {
-    if (*copy < ' ' || *copy == 127) {
-      printf("%s", toHex(*copy).str);
-      copy++;
-      continue;
-    }
-    printf("%c", *copy);
-    copy++;
-  }
-  printf("%s\n", content);
+
   String currNum = createStr("");
   Node *headNode;
   Node *tailNode;
-  printf("headNode: %ld\n", (long int)&headNode);
-  printf("tailNode: %ld\n", (long int)&tailNode);
-  printf("\nstart\n");
   int i = 0;
-
-  printf("int i: %ld\n", (long int)&i);
   while (*content) {
     char currChar = *content;
-    printf("char: %ld\n", (long int)&currChar);
-    printf("%d>_______\n", i);
-    printf("curr(%d): %c\n", i, currChar);
+    printf("(%d) >>> current char: (%c)\n", i + 1, currChar);
     if (currChar == ' ') {
       printf("index %d is whitespace\n", i);
       goto Next;
@@ -72,62 +55,68 @@ int main(int argc, char *argv[]) {
       printf("\ncurrent num: %s\n", currNum.str);
       goto Next;
     }
+
     Node *currNode = CNode();
-    printf("currNode: %ld\n", (long int)&currNode);
     if (!isOperator(currNode, currChar)) {
       goto Fail;
     }
-    printf("add child\n");
-    printf("before:\n");
-    printStr(&currNum);
+
+    printf("add op to tree\n");
     addChildNode(currNode, toInt(&currNum), LEFT);
     setStrEmpty(&currNum);
-    printf("after:\n");
-    printStr(&currNum);
     if (tailNode == NULL) {
+      printf("add first node\n");
       headNode = currNode;
       tailNode = currNode;
       goto Next;
     }
-    Node *prev = tailNode;
-    printf("prev: %ld\n", (long int)&currNode);
-    while (prev != NULL) {
-      printf("\nloop");
-      int cmp = operatorCmp(currNode->op, prev->op);
-      printf("int cmp: %ld\n", (long int)&currNode);
-      if (cmp > 0) {
-        currNode->children[LEFT] = prev->children[RIGHT];
-        currNode->children[LEFT]->parent = currNode;
-        prev->children[RIGHT] = currNode;
-        currNode->parent = prev;
-        if (prev->parent == NULL) {
-          headNode = prev;
+    int cmp = operatorCmp(currNode->op, tailNode->op);
+    printf("cmp\n");
+    if (cmp < 1) {
+      printf("less or equal\n");
+      printf("tailNode is (%c, L%d)\n", getOperator(tailNode->op),
+             tailNode->children[LEFT]->value);
+      Node *prev = tailNode;
+      while (prev->parent != NULL) {
+        printf("bin hier\n");
+        printf("currNode is (%c, L%d)\n", getOperator(currNode->op),
+               currNode->children[LEFT]->value);
+        printf("prev->parent is (%c, L%d)\n", getOperator(prev->parent->op),
+               prev->parent->children[LEFT]->value);
+        if (0 < operatorCmp(currNode->op, prev->parent->op)) {
+          printf("lol\n");
+          printf("p is (%c, L%d)\n", getOperator(prev->op),
+                 prev->children[LEFT]->value);
+          printf("parent is (%c, L%d)\n", getOperator(prev->parent->op),
+                 prev->parent->children[LEFT]->value);
+          break;
         }
-        tailNode = currNode;
-        break;
-      } else if (cmp == 0) {
-        prev->children[RIGHT] = currNode;
-        currNode->parent = prev;
-        if (prev->parent == NULL) {
-          headNode = prev;
-        }
-        tailNode = currNode;
-        break;
+        prev = prev->parent;
       }
-      prev = prev->parent;
+      printf("currNode is (%c, L%d)\n", getOperator(currNode->op),
+             currNode->children[LEFT]->value);
+      printf("prev is (%c, L%d)\n", getOperator(prev->op),
+             prev->children[LEFT]->value);
+      tailNode->children[RIGHT] = currNode->children[LEFT];
+      tailNode->children[RIGHT]->parent = tailNode;
+      currNode->children[LEFT] = prev;
+      prev->parent = currNode;
+      headNode = currNode;
+      tailNode = currNode;
+      goto Next;
     }
-    currNode->children[RIGHT] = headNode;
-    headNode->parent = currNode;
+    printf("greater\n");
+    tailNode->children[RIGHT] = currNode;
+    currNode->parent = tailNode;
+    tailNode = currNode;
   Next:
+    printf("(%d) >>> end of iter\n", i + 1);
     content++;
     i++;
-    printf("%d>_______\n", i);
-    printf("next\n");
     continue;
   }
-  printf("end\n");
   if (!isEmpty(&currNum)) {
-    printf("added child");
+    printf("add last num to tree\n");
     addChildNode(tailNode, toInt(&currNum), RIGHT);
   }
   freeStr(&currNum);

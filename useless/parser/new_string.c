@@ -61,8 +61,8 @@ void appendChar(String *str, char c) {
   if (!c) {
     return;
   }
-  if (str->size + 1 > str->capacity) {
-    int capacity = roundCapacity(str->size + 1);
+  if (str->size + 2 > str->capacity) {
+    int capacity = roundCapacity(str->size + 2 - 1);
     char *newStr = (char *)realloc(str->str, capacity);
     if (newStr == NULL) {
       return;
@@ -71,6 +71,7 @@ void appendChar(String *str, char c) {
     str->capacity = capacity;
   }
   memcpy(str->str + str->size - 1, &c, 1);
+  str->str[str->size + 1] = '\0';
   str->size++;
 }
 void appendStr(String *str, String *otherStr) {
@@ -121,7 +122,6 @@ void printHidden(char *str) {
   }
 }
 void setStrEmpty(String *str) {
-  printf("setEmpty called\n");
   str->str[0] = '\0';
   str->size = 1;
 }
