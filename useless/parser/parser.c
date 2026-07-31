@@ -78,30 +78,21 @@ int main(int argc, char *argv[]) {
              tailNode->children[LEFT]->value);
       Node *prev = tailNode;
       while (prev->parent != NULL) {
-        printf("bin hier\n");
-        printf("currNode is (%c, L%d)\n", getOperator(currNode->op),
-               currNode->children[LEFT]->value);
-        printf("prev->parent is (%c, L%d)\n", getOperator(prev->parent->op),
-               prev->parent->children[LEFT]->value);
         if (0 < operatorCmp(currNode->op, prev->parent->op)) {
-          printf("lol\n");
-          printf("p is (%c, L%d)\n", getOperator(prev->op),
-                 prev->children[LEFT]->value);
-          printf("parent is (%c, L%d)\n", getOperator(prev->parent->op),
-                 prev->parent->children[LEFT]->value);
           break;
         }
         prev = prev->parent;
       }
-      printf("currNode is (%c, L%d)\n", getOperator(currNode->op),
-             currNode->children[LEFT]->value);
-      printf("prev is (%c, L%d)\n", getOperator(prev->op),
-             prev->children[LEFT]->value);
+      if (prev->parent == NULL) {
+        headNode = currNode;
+      } else {
+        prev->parent->children[RIGHT] = currNode;
+        currNode->parent = prev->parent;
+      }
       tailNode->children[RIGHT] = currNode->children[LEFT];
       tailNode->children[RIGHT]->parent = tailNode;
       currNode->children[LEFT] = prev;
       prev->parent = currNode;
-      headNode = currNode;
       tailNode = currNode;
       goto Next;
     }
