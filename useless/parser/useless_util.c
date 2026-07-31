@@ -69,6 +69,24 @@ String toHex(char c) {
   freeStr(&tmp);
   return s;
 }
+int findC(char *cstr, char c) {
+  for (int i = 0; *cstr; i++) {
+    if (cstr[i] == c) {
+      return i;
+    }
+  }
+  return -1;
+}
+int lastC(char *cstr, char c) {
+  int lastpos = -1;
+  for (int i = 0; *cstr; i++) {
+    if (*cstr == c) {
+      lastpos = i;
+    }
+    cstr++;
+  }
+  return lastpos;
+}
 void printdebug(char *c) {
   printf("<");
   while (*c) {

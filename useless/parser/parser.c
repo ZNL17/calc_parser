@@ -1,58 +1,72 @@
+#include "headers/parser.h"
 #include "headers/new_string.h"
 #include "headers/useless_util.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#define ADD 43
-#define SUBSTRACT 45
-#define MULTPLY 42
-#define DIVIDE 47
-#define LEFT 0
-#define RIGHT 1
-typedef enum {
-  Add = ADD,
-  Substract = SUBSTRACT,
-  Multply = MULTPLY,
-  Divide = DIVIDE
-} Operator;
-typedef struct _Node Node;
-struct _Node {
-  Node *parent;
-  int value;
-  Operator op;
-  Node *children[2];
-};
-Node *CNode();
-void addChildNode(Node *parent, int value, int direction);
-int isOperator(Node *node, char c);
-int operatorCmp(Operator curr, Operator other);
-char getOperator(Operator op);
-int getPriority(Operator op);
-void freeList(Node *node);
-void freeNode(Node *node);
-int calc(Node *node);
-int calcOp(int a, int b, Operator op);
+#define PRINTF
 int main(int argc, char *argv[]) {
-  if (argc != 2)
+  if (argc != 2) {
     return EXIT_FAILURE;
-  char *content = argv[1];
-
+  }
+  int BUFFER_SIZE = 4096;
+  char buffer[BUFFER_SIZE];
+  FILE *file = fopen(argv[1], "r");
+  if (file == NULL) {
+    return EXIT_FAILURE;
+  }
+  int win = 0;
+  int loss = 0;
+  // skips header
+  fgets(buffer, BUFFER_SIZE, file);
+  while (fgets(buffer, BUFFER_SIZE, file)) {
+    PRINTF("read: %s", buffer);
+    int startpos = findC(buffer, ',') + 1;
+    PRINTF("startpos %d\n", startpos);
+    int lastpos = lastC(buffer, ',') + 1;
+    PRINTF("lastpos %d\n", lastpos);
+    int exp = atoi(buffer + lastpos);
+    PRINTF("atoi works\n");
+    int size = lastpos - startpos;
+    char *ptr = (char *)malloc(size);
+    if (ptr == NULL) {
+      PRINTF("wow no memory?\n");
+    }
+    memcpy(ptr, buffer + startpos, size);
+    ptr[size - 1] = '\0';
+    int result = parse(ptr);
+    if (result != exp) {
+      printf("assertion failed\n");
+      printf("expr: %.*s expects %d\n", size - 1, buffer + startpos, exp);
+      printf("given %d\n", result);
+      loss++;
+      continue;
+    }
+    printf("assertion true\n");
+    printf("expr: %.*s expects %d\n", size - 1, buffer + startpos, exp);
+    printf("given %d\n", result);
+    win++;
+    PRINTF("iter end\n");
+  }
+  printf("total: %d, passed: %d, failed :%d", win + loss, win, loss);
+  fclose(file);
+}
+int parse(char *content) {
   String currNum = createStr("");
-  Node *headNode;
-  Node *tailNode;
+  Node *headNode = NULL;
+  Node *tailNode = NULL;
   int i = 0;
   while (*content) {
     char currChar = *content;
-    printf("(%d) >>> current char: (%c)\n", i + 1, currChar);
-    if (currChar == ' ') {
-      printf("index %d is whitespace\n", i);
+    PRINTF("(%d) >>> current char: (%c)\n", i + 1, currChar);
+    if (currChar == ' ' || currChar == '"') {
+      PRINTF("index %d is whitespace\n", i);
       goto Next;
     }
     if (isNumber(currChar)) {
-      printf("%c is a digit\n", currChar);
-      printf("append %c to %s\n", currChar, currNum.str);
+      PRINTF("%c is a digit\n", currChar);
+      PRINTF("append %c to %s\n", currChar, currNum.str);
       appendChar(&currNum, currChar);
-      printf("\ncurrent num: %s\n", currNum.str);
+      PRINTF("\ncurrent num: %s\n", currNum.str);
       goto Next;
     }
 
@@ -61,76 +75,96 @@ int main(int argc, char *argv[]) {
       goto Fail;
     }
 
-    printf("add op to tree\n");
+    PRINTF("add op to tree\n");
     addChildNode(currNode, toInt(&currNum), LEFT);
     setStrEmpty(&currNum);
     if (tailNode == NULL) {
-      printf("add first node\n");
+      PRINTF("add first node\n");
       headNode = currNode;
       tailNode = currNode;
       goto Next;
     }
-    int cmp = operatorCmp(currNode->op, tailNode->op);
-    printf("cmp\n");
-    if (cmp < 1) {
-      printf("less or equal\n");
-      printf("tailNode is (%c, L%d)\n", getOperator(tailNode->op),
-             tailNode->children[LEFT]->value);
-      Node *prev = tailNode;
-      while (prev->parent != NULL) {
-        if (0 < operatorCmp(currNode->op, prev->parent->op)) {
-          break;
-        }
-        prev = prev->parent;
-      }
-      if (prev->parent == NULL) {
-        headNode = currNode;
-      } else {
-        prev->parent->children[RIGHT] = currNode;
-        currNode->parent = prev->parent;
-      }
-      tailNode->children[RIGHT] = currNode->children[LEFT];
-      tailNode->children[RIGHT]->parent = tailNode;
-      currNode->children[LEFT] = prev;
-      prev->parent = currNode;
-      tailNode = currNode;
-      goto Next;
-    }
-    printf("greater\n");
-    tailNode->children[RIGHT] = currNode;
-    currNode->parent = tailNode;
-    tailNode = currNode;
+    PRINTF("add\n");
+    addExprToTree(currNode, &headNode, &tailNode);
+    PRINTF("\nresult: %d", calc(headNode));
+    PRINTF("-------------------------------------");
   Next:
-    printf("(%d) >>> end of iter\n", i + 1);
+    PRINTF("(%d) >>> end of iter\n", i + 1);
     content++;
     i++;
     continue;
   }
   if (!isEmpty(&currNum)) {
-    printf("add last num to tree\n");
+    PRINTF("add last num to tree\n");
+    printNode(tailNode, "add last to tailNode");
     addChildNode(tailNode, toInt(&currNum), RIGHT);
   }
   freeStr(&currNum);
-  printf("\nresult: %d", calc(headNode));
-  return EXIT_SUCCESS;
+  return calc(headNode);
 Fail:
-  printf("ENTERED INCORRECT SYMBOLS");
+  PRINTF("ENTERED INCORRECT SYMBOLS\n");
   return EXIT_FAILURE;
 }
+void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
+  printNode(currNode, "currNode");
+  printNode(*headNode, "headNode");
+  printNode(*tailNode, "tailNode");
+  int cmp = operatorCmp(currNode->op, (*tailNode)->op);
+  PRINTF("cmp\n");
+  if (cmp < 1) {
+    PRINTF("currNode is equal/lesser\n");
+    Node *prev = *tailNode;
+    while (prev->parent != NULL) {
+      PRINTF("iter start\n");
+      if (0 < operatorCmp(currNode->op, prev->parent->op)) {
+        PRINTF("found node() that is smaller %c > %c\n",
+               getOperator(currNode->op), getOperator(prev->parent->op));
+        PRINTF("break\n");
+        break;
+      }
+      prev = prev->parent;
+      PRINTF("switch to next iter\n");
+    }
+    PRINTF("finished search\n");
+    if (prev->parent == NULL) {
+      printNode(prev, "prev-parent is null this is prev");
+      *headNode = currNode;
+    } else {
+      printNode(prev->parent, "prev-parent is not head");
+      prev->parent->children[RIGHT] = currNode;
+      currNode->parent = prev->parent;
+    }
+    PRINTF("add to tail\n");
+    (*tailNode)->children[RIGHT] = currNode->children[LEFT];
+    (*tailNode)->children[RIGHT]->parent = *tailNode;
+    PRINTF("add to left\n");
+    currNode->children[LEFT] = prev;
+    prev->parent = currNode;
+    *tailNode = currNode;
+    PRINTF("return < 1\n");
+    return;
+  }
+  PRINTF("currNode is greater\n");
+  (*tailNode)->children[RIGHT] = currNode;
+  currNode->parent = *tailNode;
+  *tailNode = currNode;
+  PRINTF("return > 0\n");
+}
 int calc(Node *node) {
+  if (node == NULL) {
+    PRINTF("NULL\n");
+    return -1;
+  }
   if (node->children[LEFT] == NULL) {
-    printf("(is value)value: %d, operator: %c\n", node->value,
-           getOperator(node->op));
-
+    PRINTF("(value)value: %d\n", node->value);
     return node->value;
   }
-  printf("(is operation )value: %d, operator: %c\n", node->value,
-         getOperator(node->op));
+  PRINTF("(operation)operator: %c\n", getOperator(node->op));
   return calcOp(calc(node->children[LEFT]), calc(node->children[RIGHT]),
                 node->op);
 }
 int calcOp(int a, int b, Operator op) {
-  printf("op: %d %c %d\n", a, getOperator(op), b);
+  PRINTF("op: %d %c %d\n", a, getOperator(op), b);
   switch (op) {
   case Add:
     return a + b;
@@ -198,12 +232,21 @@ char getOperator(Operator op) {
   return '\0';
 }
 
-Node *CNode() { return (Node *)malloc(sizeof(Node)); }
+Node *CNode() {
+  Node *node = (Node *)malloc(sizeof(Node));
+  node->parent = NULL;
+  node->children[LEFT] = NULL;
+  return node;
+}
 void addChildNode(Node *parent, int value, int direction) {
   Node *node = CNode();
   node->value = value;
   node->parent = parent;
   parent->children[direction] = node;
+}
+
+void printNode(Node *node, char *name) {
+  PRINTF("%s (%c, %d)\n", name, getOperator(node->op), node->value);
 }
 void freeList(Node *node) {
   Node *curr = node;

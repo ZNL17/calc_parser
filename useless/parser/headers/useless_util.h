@@ -8,6 +8,8 @@ char *rstrcpy(char *dest, const char *src);
 void *rmemcpy(void *destpp, void *srcpp, size_t n);
 char decToHex(int d);
 String toHex(char c);
+int findC(char *cstr, char c);
+int lastC(char *cstr, char c);
 void printdebug(char *c);
 #endif
 #define HEX 16
