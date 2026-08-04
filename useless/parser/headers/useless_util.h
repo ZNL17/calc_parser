@@ -2,6 +2,7 @@
 #define USELESS_UTIL_H
 #include "new_string.h"
 #include <string.h>
+int roundCapacity(int s);
 int isNumber(char c);
 void reverseCStr(char *cstr);
 char *rstrcpy(char *dest, const char *src);

@@ -3,7 +3,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #define AT_LEAST_TWO 3
-
+#define GROWTH 10
+int roundCapacity(int s) { return s + (GROWTH - s % GROWTH); }
 int isNumber(char c) {
   if (c < '0' || c > '9') {
     return 0;

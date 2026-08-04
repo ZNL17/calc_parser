@@ -28,13 +28,13 @@ int main() {
   return 0;
 }
 */
-String createStr(char *str) {
-  String s;
-  s.size = strlen(str) + 1;
-  s.capacity = roundCapacity(s.size);
-  char *strDest = malloc(s.capacity);
-  s.str = strDest;
-  memcpy(s.str, str, s.size);
+String *createStr(char *str) {
+  String *s = malloc(sizeof(String));
+  s->size = strlen(str) + 1;
+  s->capacity = roundCapacity(s->size);
+  char *strDest = malloc(s->capacity);
+  s->str = strDest;
+  memcpy(s->str, str, s->size);
   return s;
 }
 void appendCStr(String *str, char *content) {
@@ -126,5 +126,4 @@ void setStrEmpty(String *str) {
   str->size = 1;
 }
 int isEmpty(String *str) { return str->size == 1; }
-int roundCapacity(int s) { return s + (10 - s % 10); }
 void freeStr(String *str) { free(str->str); }

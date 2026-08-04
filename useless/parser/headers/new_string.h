@@ -5,11 +5,10 @@ typedef struct {
   int size;
   int capacity;
 } String;
-String createStr(char *str);
+String *createStr(char *str);
 void appendCStr(String *str, char *content);
 void appendStr(String *str, String *otherStr);
 void appendChar(String *str, char c);
-int roundCapacity(int s);
 int toInt(String *str);
 void printNull(String *str);
 void printStr(String *str);

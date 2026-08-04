@@ -1,35 +1,10 @@
 #ifndef PARSER_H
 #define PARSER_H
-#define ADD 43
-#define SUBSTRACT 45
-#define MULTPLY 42
-#define DIVIDE 47
-#define LEFT 0
-#define RIGHT 1
-typedef enum {
-  Add = ADD,
-  Substract = SUBSTRACT,
-  Multply = MULTPLY,
-  Divide = DIVIDE
-} Operator;
-typedef struct _Node Node;
-struct _Node {
-  Node *parent;
-  int value;
-  Operator op;
-  Node *children[2];
-};
+#include "expression.h"
+typedef struct {
+  Node *head;
+  Node *tail;
+} State;
 int parse(char *content);
-void addExprToTree(Node *currNode, Node **headNode, Node **tailNode);
-Node *CNode();
-void addChildNode(Node *parent, int value, int direction);
-int isOperator(Node *node, char c);
-int operatorCmp(Operator curr, Operator other);
-char getOperator(Operator op);
-int getPriority(Operator op);
-void freeList(Node *node);
-void freeNode(Node *node);
-int calc(Node *node);
-int calcOp(int a, int b, Operator op);
-void printNode(Node *node, char *name);
+State CState(Node *head, Node *tail);
 #endif
