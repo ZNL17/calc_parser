@@ -53,22 +53,22 @@ char decToHex(int d) {
   return 'K' - d;
 }
 String toHex(char c) {
-  String s = createStr("\\x");
-  String tmp = createStr("");
+  String *s = string_add_value_new("\\x");
+  String *tmp = string_add_value_new("");
   int q = c;
   while (q) {
     char r = decToHex(q % HEX);
     q = q / HEX;
-    appendCStr(&tmp, &r);
+    appendCStr(tmp, &r);
   }
-  if (tmp.size < AT_LEAST_TWO) {
+  if (tmp->size < AT_LEAST_TWO) {
     char c = '0';
-    appendCStr(&tmp, &c);
+    appendCStr(tmp, &c);
   }
-  reverseCStr(tmp.str);
-  appendStr(&s, &tmp);
-  freeStr(&tmp);
-  return s;
+  reverseCStr(tmp->string);
+  appendStr(s, tmp);
+  free_string(tmp);
+  return *s;
 }
 int findC(char *cstr, char c) {
   for (int i = 0; *cstr; i++) {
@@ -92,7 +92,7 @@ void printdebug(char *c) {
   printf("<");
   while (*c) {
     if (*c < ' ' || *c == 127) {
-      printf("%s", toHex(*c).str);
+      printf("%s", toHex(*c).string);
       c++;
       continue;
     }

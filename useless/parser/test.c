@@ -1,10 +1,14 @@
+#include "headers/useless_util.h"
 #include <stdio.h>
 int main() {
-  int i = 0;
-  int *ptr = &i;
-  for (int j = 0; j < 10; j++) {
-    (*ptr)++;
+  char c = ' ';
+  char hex = '\x32';
+  if (c == hex) {
+    printf("gleich");
+    return 0;
   }
-  printf("result: %d", *ptr);
+  String s = toHex(hex);
+  printf("_%c:%d\n", hex, hex);
+  printf("%s\n", s.string);
   return 0;
 }
