@@ -1,5 +1,6 @@
 #ifndef EXPRESSION_H
 #define EXPRESSION_H
+#include "lexer.h"
 #define ADD 43
 #define SUBSTRACT 45
 #define MULTPLY 42
@@ -15,20 +16,35 @@ typedef enum {
 typedef struct _Node Node;
 struct _Node {
   Node *parent;
-  int value;
-  Operator op;
+  Token value;
   Node *children[2];
 };
+typedef union {
+  int integer;
+  float decimal;
+} Numeric;
+typedef struct {
+  Type type;
+  Numeric numeric;
+} Number;
 
 Node *CNode();
 void addExprToTree(Node *currNode, Node **headNode, Node **tailNode);
-void addChildNode(Node *parent, int value, int direction);
+void addChildNode(Node *parent, Token value, int direction);
 int operatorCmp(Operator curr, Operator other);
-char getOperator(Operator op);
+int operatorTokenCmp(Token curr, Token other);
+char getOperator(Node node);
 int getPriority(Operator op);
+Operator whichOperator(Token token);
 void freeList(Node *node);
 void freeNode(Node *node);
-int calc(Node *node);
-int calcOp(int a, int b, Operator op);
+Number calc(Node *node);
+Number calcOp(Number a, Number b, Node node);
+Number add(Number a, Number b);
+Number substract(Number a, Number b);
+Number multiply(Number a, Number b);
+Number divide(Number a, Number b);
+int equal(Number a, Number b);
+void printNumber(Number n);
 void printNode(Node *node, char *name);
 #endif

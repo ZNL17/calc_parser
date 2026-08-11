@@ -1,4 +1,5 @@
 #include "headers/expression.h"
+#include "headers/lexer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #define PRINTF printf
@@ -7,16 +8,17 @@ void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
   printNode(currNode, "currNode");
   printNode(*headNode, "headNode");
   printNode(*tailNode, "tailNode");
-  int cmp = operatorCmp(currNode->op, (*tailNode)->op);
+  int cmp = operatorCmp(whichOperator(currNode->value),
+                        whichOperator((*tailNode)->value));
   PRINTF("cmp\n");
   if (cmp < 1) {
     PRINTF("currNode is equal/lesser\n");
     Node *prev = *tailNode;
     while (prev->parent != NULL) {
       PRINTF("iter start\n");
-      if (0 < operatorCmp(currNode->op, prev->parent->op)) {
-        PRINTF("found node() that is smaller %c > %c\n",
-               getOperator(currNode->op), getOperator(prev->parent->op));
+      if (0 < operatorTokenCmp(currNode->value, prev->parent->value)) {
+        PRINTF("found node() that is smaller %c > %c\n", getOperator(*currNode),
+               getOperator(*prev->parent));
         PRINTF("break\n");
         break;
       }
@@ -48,39 +50,94 @@ void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
   *tailNode = currNode;
   PRINTF("return > 0\n");
 }
-int calc(Node *node) {
-  if (node == NULL) {
-    PRINTF("NULL\n");
-    return -1;
+Number specifierNumber(Node node) {
+  switch (node.value.type) {
+  case INTEGER:
+    return (Number){INTEGER, {.integer = atoi(node.value.string->string)}};
+  case FLOAT:
+    return (Number){FLOAT, {.decimal = atof(node.value.string->string)}};
   }
-  if (node->children[LEFT] == NULL) {
-    PRINTF("(value)value: %d\n", node->value);
-    return node->value;
-  }
-  PRINTF("(operation)operator: %c\n", getOperator(node->op));
-  return calcOp(calc(node->children[LEFT]), calc(node->children[RIGHT]),
-                node->op);
+  return (Number){0, {}};
 }
-int calcOp(int a, int b, Operator op) {
-  PRINTF("op: %d %c %d\n", a, getOperator(op), b);
-  switch (op) {
-  case Add:
-    return a + b;
-    break;
-  case Substract:
-    return a - b;
-    break;
-  case Multply:
-    return a * b;
-    break;
-  case Divide:
-    return a / b;
-    break;
+Number calc(Node *node) {
+  if (node->children[LEFT] == NULL) {
+    return specifierNumber(*node);
   }
+  return calcOp(calc(node->children[LEFT]), calc(node->children[RIGHT]), *node);
+}
+Number calcOp(Number a, Number b, Node node) {
+  PRINTF("op: ");
+  printNumber(a);
+  PRINTF(" %c ", getOperator(node));
+  printNumber(b);
+  PRINTF("\n");
+  switch (getOperator(node)) {
+  case Add:
+    PRINTF("+");
+    return add(a, b);
+  case Substract:
+    PRINTF("-");
+    return substract(a, b);
+  case Multply:
+    PRINTF("*");
+    return multiply(a, b);
+  case Divide:
+    PRINTF("/");
+    return divide(a, b);
+  }
+  return (Number){0, {}};
+}
+float intToFloat(Number a) {
+  if (a.type == FLOAT) {
+    return a.numeric.decimal;
+  }
+  return (float)a.numeric.integer;
+}
+Number add(Number a, Number b) {
+  if (a.type + b.type > 2) {
+    return (Number){.type = FLOAT, {.decimal = intToFloat(a) + intToFloat(b)}};
+  }
+  return (Number){.type = INTEGER,
+                  {.integer = a.numeric.integer + b.numeric.integer}};
 }
 
+Number substract(Number a, Number b) {
+  if (a.type + b.type > 2) {
+    return (Number){.type = FLOAT, {.decimal = intToFloat(a) - intToFloat(b)}};
+  }
+  return (Number){.type = INTEGER,
+                  {.integer = a.numeric.integer - b.numeric.integer}};
+}
+Number multiply(Number a, Number b) {
+  if (a.type + b.type > 2) {
+    return (Number){.type = FLOAT, {.decimal = intToFloat(a) * intToFloat(b)}};
+  }
+  return (Number){.type = INTEGER,
+                  {.integer = a.numeric.integer * b.numeric.integer}};
+}
+Number divide(Number a, Number b) {
+  if ((a.type + b.type) > (INTEGER + INTEGER)) {
+    return (Number){.type = FLOAT, {.decimal = intToFloat(a) / intToFloat(b)}};
+  }
+  return (Number){.type = INTEGER,
+                  {.integer = a.numeric.integer / b.numeric.integer}};
+}
+int equal(Number a, Number b) {
+  switch (a.type + b.type) {
+  case INTEGER + INTEGER:
+    return a.numeric.integer == b.numeric.integer;
+  case FLOAT + FLOAT:
+    return a.numeric.decimal == b.numeric.decimal;
+  case INTEGER + FLOAT:
+    return intToFloat(a) == intToFloat(b);
+  }
+  return 0;
+}
 int operatorCmp(Operator curr, Operator other) {
   return getPriority(curr) - getPriority(other);
+}
+int operatorTokenCmp(Token curr, Token other) {
+  return getPriority(whichOperator(curr)) - getPriority(whichOperator(other));
 }
 int getPriority(Operator op) {
   switch (op) {
@@ -95,8 +152,8 @@ int getPriority(Operator op) {
   }
   return -1;
 }
-char getOperator(Operator op) {
-  switch (op) {
+char getOperator(Node node) {
+  switch (whichOperator(node.value)) {
   case Add:
     return '+';
   case Substract:
@@ -108,6 +165,25 @@ char getOperator(Operator op) {
   }
   return '\0';
 }
+Operator whichOperator(Token token) {
+  if (token.type != OPERATOR) {
+    return 0;
+  }
+  if (!*token.string->string) {
+    return 0;
+  }
+  switch (*token.string->string) {
+  case '+':
+    return Add;
+  case '-':
+    return Substract;
+  case '*':
+    return Multply;
+  case '/':
+    return Divide;
+  }
+  return 0;
+}
 
 Node *CNode() {
   Node *node = (Node *)malloc(sizeof(Node));
@@ -115,15 +191,25 @@ Node *CNode() {
   node->children[LEFT] = NULL;
   return node;
 }
-void addChildNode(Node *parent, int value, int direction) {
+void addChildNode(Node *parent, Token value, int direction) {
   Node *node = CNode();
   node->value = value;
   node->parent = parent;
   parent->children[direction] = node;
 }
-
+void printNumber(Number n) {
+  if (n.type == FLOAT) {
+    printf("%f", n.numeric.decimal);
+    return;
+  }
+  printf("%d", n.numeric.integer);
+}
 void printNode(Node *node, char *name) {
-  PRINTF("%s (%c, %d)\n", name, getOperator(node->op), node->value);
+  if (node == NULL) {
+    printf("is Null\n");
+    return;
+  }
+  PRINTF("%s (%c, %d)\n", name, getOperator(*node), node->value.type);
 }
 void freeList(Node *node) {
   Node *curr = node;

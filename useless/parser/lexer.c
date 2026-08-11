@@ -1,39 +1,10 @@
+#include "headers/lexer.h"
 #include "headers/expression.h"
 #include "headers/new_string.h"
 #include "headers/useless_util.h"
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef enum { INTEGER, FLOAT, OPERATOR, PARENTHESES, WHITESPACE } Type;
-typedef struct {
-  int start;
-  int end;
-} Span;
-typedef struct {
-  Span span;
-  Type type;
-} Token;
-
-typedef struct {
-  int size;
-  int capacity;
-  Token *tokens;
-} Array;
-
-Array *parser(char *str);
-int whiteList(char c);
-int consumeWhiteSpace(Array *array, char **str, int *index);
-int consumerNumber(Array *array, char **str, int *index);
-int isRightSideFloat(char *str, int *index);
-int isWhiteSpace(char c);
-int isParentheses(Array *array, char c, int index);
-int isSeperator(char c);
-Array *array_new();
-void appendToken(Array *array, Token *token);
-void setToken(Array *array, Type type, int start, int end);
-int isOperator(Array *array, char c, int index);
-int getSpanSize(Span span);
-void printTokens(char *str, Array *array);
+/*
 int main(int argc, char *argv[]) {
   FILE *ptr;
   ptr = fopen(argv[1], "r");
@@ -44,22 +15,23 @@ int main(int argc, char *argv[]) {
   char buffer[BUFFER_SIZE];
   while (fgets(buffer, BUFFER_SIZE, ptr)) {
     StringList *rows = split(buffer, ',', -1);
-    printf("row(%d): ", rows->size);
+    printf("row size(%d): \n", rows->size);
     if (rows->size < 3) {
       printf("skip line\n");
       continue;
     }
     strip_mark(rows->strings[1]);
-    printf("%s\n", rows->strings[1]->string);
-    Array *array = parser(rows->strings[1]->string);
-    printf("array(%d): \n", array->size);
-    printTokens(rows->strings[1]->string, array);
-    printf("iter end\n");
+    printf("input: %s: \n", rows->strings[1]->string);
+    Tokens *tokens = lexer(rows->strings[1]->string);
+    printf("tokens size(%d): \n", tokens->size);
+    printTokens(rows->strings[1]->string, tokens);
+    printf("\niter end\n");
   }
   return EXIT_SUCCESS;
 }
-Array *parser(char *str) {
-  Array *array = array_new();
+*/
+Tokens *lexer(char *str) {
+  Tokens *array = array_new();
   int i = 0;
   while (*str) {
     if (!whiteList(*str)) {
@@ -102,7 +74,7 @@ int whiteList(char c) {
   }
   return 0;
 }
-int consumeWhiteSpace(Array *array, char **str, int *index) {
+int consumeWhiteSpace(Tokens *array, char **str, int *index) {
   if (!isWhiteSpace(**str)) {
     return 0;
   }
@@ -130,32 +102,30 @@ int isWhiteSpace(char c) {
   }
   return 0;
 }
-int isOperator(Array *array, char c, int index) {
+int isOperator(Tokens *array, char c, int index) {
   switch (c) {
   case Add:
   case Substract:
   case Multply:
   case Divide:
-    setToken(array, OPERATOR, index, index);
+    setTokenChar(array, OPERATOR, c, index, index + 1);
     return 1;
   }
   return 0;
 }
-int isParentheses(Array *array, char c, int index) {
-  Token token;
+int isParentheses(Tokens *array, char c, int index) {
   if (c == '(' || c == ')') {
-    setToken(array, PARENTHESES, index, index);
+    setTokenChar(array, PARENTHESES, c, index, index + 1);
     return 1;
   }
   return 0;
 }
-int consumerNumber(Array *array, char **str, int *index) {
+int consumerNumber(Tokens *array, char **str, int *index) {
   if (!isNumber(**str)) {
     return 0;
   }
-  Token token;
   if (**str == '0' && !isSeperator(*(*str + 1))) {
-    setToken(array, INTEGER, *index, (*index)++);
+    setToken(array, INTEGER, *str, *index, ++(*index));
     (*str)++;
     return 0;
   }
@@ -163,42 +133,45 @@ int consumerNumber(Array *array, char **str, int *index) {
   while (**str) {
     if (!isNumber(**str)) {
       if (**str == '.' || **str == ',') {
-        str++;
-        if (isRightSideFloat(*str, index)) {
-          setToken(array, FLOAT, i, *index - 1);
+        (*str)++;
+        (*index)++;
+        if (isRightSideFloat(str, index)) {
+          setToken(array, FLOAT, *str - *index, i, *index);
           return 0;
         }
         return 0;
       }
-      setToken(array, INTEGER, i, (*index) - 1);
+      setToken(array, INTEGER, *str - *index, i, *index);
       return 0;
     }
     (*str)++;
     (*index)++;
   }
-  setToken(array, INTEGER, i, *index - 1);
+  setToken(array, INTEGER, *str - *index, i, *index);
   return 1;
 }
-void setToken(Array *array, Type type, int start, int end) {
+void setToken(Tokens *array, Type type, char *cstring, int start, int end) {
+  String *string = substring(cstring, start, end);
   Span span = {start, end};
-  Token token = {span, type};
-
+  Token token = {string, span, type};
+  appendToken(array, &token);
+}
+void setTokenChar(Tokens *array, Type type, char c, int start, int end) {
+  String *string = string_new();
+  appendChar(string, c);
+  Span span = {start, end};
+  Token token = {string, span, type};
   appendToken(array, &token);
 }
 //^(0|\d+)$
-int isInteger(Array *array, char *str, int index) {}
+int isInteger(Tokens *array, char *str, int index) {}
 //^(0.\d+|\d.\d+)$
-int isRightSideFloat(char *str, int *index) {
-  if (!isNumber(*str)) {
-    return 0;
-  }
-  str++;
-  int i = *index;
-  for (; *str; i++) {
-    if (!isNumber(*str)) {
+int isRightSideFloat(char **str, int *index) {
+  for (; *str; (*index)++) {
+    if (!isNumber(**str)) {
       return 1;
     }
-    str++;
+    (*str)++;
   }
   return 1;
 }
@@ -208,21 +181,21 @@ int isSeperator(char c) {
   }
   return 0;
 }
-Array *array_new() {
-  Array *ptr = (Array *)malloc(sizeof(Array));
+Tokens *array_new() {
+  Tokens *ptr = (Tokens *)malloc(sizeof(Tokens));
   if (ptr == NULL) {
-    return (Array *)NULL;
+    return (Tokens *)NULL;
   }
   Token *tokens_ptr = (Token *)malloc(sizeof(Token) * 10);
   if (tokens_ptr == NULL) {
-    return (Array *)NULL;
+    return (Tokens *)NULL;
   }
   ptr->tokens = tokens_ptr;
   ptr->size = 0;
   ptr->capacity = 10;
   return ptr;
 }
-void appendToken(Array *array, Token *token) {
+void appendToken(Tokens *array, Token *token) {
   if (array->size + 1 > array->capacity) {
     int capacity = roundCapacity(array->size + 1);
     Token *ptr = (Token *)realloc(array->tokens, sizeof(Token) * capacity);
@@ -257,10 +230,12 @@ String *getToken(Type type) {
   return token;
 }
 int getSpanSize(Span span) { return (span.end - span.start) + 1; }
-void printTokens(char *str, Array *array) {
-  for (int i = 0; i < array->size; i++) {
-    Token token = array->tokens[i];
+void printTokens(Tokens *tokens) {
+  for (int i = 0; i < tokens->size; i++) {
+    Token token = tokens->tokens[i];
     printf("%s", getToken(token.type)->string);
-    printf("<%.*s>,", getSpanSize(token.span), str + token.span.start);
+    printf("<%s>", token.string->string);
+    // printf("<%.*s>,", getSpanSize(token.span), str + token.span.start);
   }
 }
+int isTokenChar(Token token, char c) { return token.string->string[0] == c; }

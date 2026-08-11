@@ -38,22 +38,18 @@ String *string_add_value_new(char *cstring) {
   return s;
 }
 String *string_new() {
-  String null = {NULL, 0, 0};
-  String *string = malloc(sizeof(String));
-  if (string == NULL) {
-    return (String *)NULL;
-  }
-  int capacity = roundCapacity(0);
-  char *ptr = (char *)malloc(sizeof(String));
+  String *ptr = malloc(sizeof(String));
   if (ptr == NULL) {
     return (String *)NULL;
   }
-  *ptr = '\0';
-  null.string = ptr;
-  null.size++;
-  null.capacity = capacity;
-  memcpy(ptr, &null, sizeof(String));
-  return string;
+  int capacity = 1;
+  char *cptr = (char *)malloc(capacity);
+  if (ptr == NULL) {
+    return (String *)NULL;
+  }
+  *cptr = '\0';
+  *ptr = (String){cptr, 1, capacity};
+  return ptr;
 }
 void string_set_cstrings(String *string, char *cstring) {
   if (!cstring) {
@@ -92,7 +88,7 @@ String *substring(char *cstring, int start, int end) {
     string->capacity = capacity;
   }
   memcpy(string->string, cstring + start, length);
-  string->string[start + length] = '\0';
+  string->string[length] = '\0';
   string->size = length + 1;
   return string;
 }
@@ -111,24 +107,22 @@ void strip_mark(String *string) {
     return;
   }
 
-  printf("amem\n");
   if (start == -1 && end == string->size) {
     return;
   }
-  int size = (end - 2) - (start + 1);
-  memcpy(string->string, string->string + (start + 1), size);
-  string->string[(start + 1) + size] = '\0';
+  int size = (end - start) + 1;
+  memcpy(string->string, string->string + start, size);
+  string->string[size] = '\0';
   string->size = size + 1;
 }
 int sequence(char *cstring, char c, int reverse) {
-  printf("los\n");
   int size = strlen(cstring);
-  int offset = (size)*reverse;
+  int offset = (size - 1) * reverse;
   int iter = 1 + (reverse * -2);
   int j = 0;
   for (int i = 0; i < size; i++) {
     if (cstring[offset + j] != c) {
-      return offset + j + (-1 + (reverse * 2));
+      return offset + j;
     }
     j += iter;
   }
@@ -155,8 +149,8 @@ void appendChar(String *str, char c) {
   if (!c) {
     return;
   }
-  if (str->size + 2 > str->capacity) {
-    int capacity = roundCapacity(str->size + 2 - 1);
+  if (str->size + 1 > str->capacity) {
+    int capacity = roundCapacity(str->size + 1);
     char *newStr = (char *)realloc(str->string, capacity);
     if (newStr == NULL) {
       return;
@@ -165,7 +159,7 @@ void appendChar(String *str, char c) {
     str->capacity = capacity;
   }
   memcpy(str->string + str->size - 1, &c, 1);
-  str->string[str->size + 1] = '\0';
+  str->string[str->size] = '\0';
   str->size++;
 }
 void appendStr(String *str, String *otherStr) {

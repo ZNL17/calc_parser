@@ -1,6 +1,6 @@
 #include "headers/parser.h"
 #include "headers/expression.h"
-#include "headers/new_string.h"
+#include "headers/lexer.h"
 #include "headers/stack.h"
 #include "headers/useless_util.h"
 #include <stdio.h>
@@ -10,69 +10,56 @@ int main(int argc, char *argv[]) {
   if (argc != 2) {
     return EXIT_FAILURE;
   }
-  int BUFFER_SIZE = 4096;
-  char buffer[BUFFER_SIZE];
   FILE *file = fopen(argv[1], "r");
   if (file == NULL) {
     return EXIT_FAILURE;
   }
   int win = 0;
   int loss = 0;
-  // skips header
-  fgets(buffer, BUFFER_SIZE, file);
+  int BUFFER_SIZE = 4096;
+  char buffer[BUFFER_SIZE];
   while (fgets(buffer, BUFFER_SIZE, file)) {
-    PRINTF("read: %s", buffer);
-    int startpos = findC(buffer, ',') + 1;
-    PRINTF("startpos %d\n", startpos);
-    int lastpos = lastC(buffer, ',') + 1;
-    PRINTF("lastpos %d\n", lastpos);
-    int exp = atoi(buffer + lastpos);
-    PRINTF("atoi works\n");
-    int size = lastpos - startpos;
-    char *ptr = (char *)malloc(size);
-    if (ptr == NULL) {
-      PRINTF("wow no memory?\n");
-    }
-    memcpy(ptr, buffer + startpos, size);
-    ptr[size - 1] = '\0';
-    int result = parse(ptr);
-    if (result != exp) {
-      printf("assertion failed\n");
-      printf("expr: %.*s expects %d\n", size - 1, buffer + startpos, exp);
-      printf("given %d\n", result);
-      loss++;
+    StringList *rows = split(buffer, ',', -1);
+    if (rows->size < 3) {
       continue;
     }
-    printf("assertion true\n");
-    printf("expr: %.*s expects %d\n", size - 1, buffer + startpos, exp);
-    printf("given %d\n", result);
-    win++;
-    PRINTF("iter end\n");
+    if (!isNumber(rows->strings[2]->string[0])) {
+      continue;
+    }
+    strip_mark(rows->strings[1]);
+    Tokens *tokens = lexer(rows->strings[1]->string);
+    printTokens(tokens);
+    Number result = parse(tokens);
+    printf("result: ");
+    printNumber(result);
+    printf("\n");
+    Number expect = {INTEGER, {atoi(rows->strings[2]->string)}};
+    if (equal(result, expect)) {
+      continue;
+    }
+    printf("assert failed for %s\n", rows->strings[1]->string);
+    printf("expected %s\n", rows->strings[2]->string);
+    printf("given ");
+    printNumber(result);
   }
-  printf("total: %d, passed: %d, failed :%d", win + loss, win, loss);
   fclose(file);
 }
-int parse(char *content) {
-  String currNum = createStr("");
+Number parse(Tokens *tokens) {
   Node *headNode = NULL;
   Node *tailNode = NULL;
   Stack *stack = CStack();
   int i = 0;
-  while (*content) {
-    char currChar = *content;
-    PRINTF("(%d) >>> current char: (%c)\n", i + 1, currChar);
-    if (currChar == ' ' || currChar == '"') {
-      PRINTF("index %d is whitespace\n", i);
-      goto Next;
-    }
-    if (currChar == '(') {
+  Token currNum;
+  for (; i < tokens->size; i++) {
+    Token token = tokens->tokens[i];
+    if (token.type == PARENTHESES && isTokenChar(token, '(')) {
       State state = CState(headNode, tailNode);
       push(stack, &state);
       headNode = NULL;
       tailNode = NULL;
       continue;
     }
-    if (currChar == ')') {
+    if (token.type == PARENTHESES && isTokenChar(token, ')')) {
       State state = pop(stack);
       if (tailNode == NULL) {
         state.head = headNode;
@@ -84,48 +71,36 @@ int parse(char *content) {
       tailNode = state.tail;
       continue;
     }
-    if (isNumber(currChar)) {
-      PRINTF("%c is a digit\n", currChar);
-      PRINTF("append %c to %s\n", currChar, currNum.str);
-      appendChar(&currNum, currChar);
-      PRINTF("\ncurrent num: %s\n", currNum.str);
-      goto Next;
+    if (token.type == INTEGER || token.type == FLOAT) {
+      currNum = token;
+      continue;
     }
-
     Node *currNode = CNode();
-    if (!isOperator(currNode, currChar)) {
-      goto Fail;
-    }
-
+    currNode->value = token;
+    addChildNode(currNode, currNum, LEFT);
     PRINTF("add op to tree\n");
-    addChildNode(currNode, toInt(&currNum), LEFT);
-    setStrEmpty(&currNum);
     if (tailNode == NULL) {
       PRINTF("add first node\n");
       headNode = currNode;
       tailNode = currNode;
-      goto Next;
+      continue;
     }
     PRINTF("add\n");
     addExprToTree(currNode, &headNode, &tailNode);
-    PRINTF("\nresult: %d", calc(headNode));
-    PRINTF("-------------------------------------");
-  Next:
-    PRINTF("(%d) >>> end of iter\n", i + 1);
-    content++;
-    i++;
-    continue;
+    PRINTF("-------------------------------------\n");
   }
-  if (!isEmpty(&currNum)) {
+  if (currNum.type != 0) {
     PRINTF("add last num to tree\n");
     printNode(tailNode, "add last to tailNode");
-    addChildNode(tailNode, toInt(&currNum), RIGHT);
+    addChildNode(tailNode, currNum, RIGHT);
+    PRINTF("after added last \n");
   }
-  freeStr(&currNum);
+  PRINTF("calc\n");
+  // freeStr(&currNum);
   return calc(headNode);
 Fail:
   PRINTF("ENTERED INCORRECT SYMBOLS\n");
-  return EXIT_FAILURE;
+  return (Number){0, {}};
 }
 State CState(Node *head, Node *tail) {
   State state;

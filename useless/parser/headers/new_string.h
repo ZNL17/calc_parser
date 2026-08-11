@@ -14,6 +14,11 @@ String *string_add_value_new(char *cstring);
 String *string_new();
 void string_set_cstrings(String *string, char *cstring);
 void string_empty(String *string);
+// substring gives a partial string from your input string
+// input "012345", start = 1, end = 3
+// output "12"
+// start is inclusive
+// end is exclusive
 String *substring(char *cstring, int start, int end);
 void strip_mark(String *string);
 int sequence(char *string, char c, int reverse);
