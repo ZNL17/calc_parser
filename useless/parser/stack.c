@@ -28,7 +28,7 @@ State pop(Stack *stack) {
     state.tail = NULL;
     return state;
   }
-  return stack->state[stack->size--];
+  return stack->state[--stack->size];
 }
 void freeStack(Stack *stack) {
   free(stack->state);

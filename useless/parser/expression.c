@@ -2,7 +2,7 @@
 #include "headers/lexer.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define PRINTF printf
+#define PRINTF
 
 void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
   printNode(currNode, "currNode");
@@ -50,27 +50,27 @@ void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
   *tailNode = currNode;
   PRINTF("return > 0\n");
 }
-Number specifierNumber(Node node) {
-  switch (node.value.type) {
+Number specifyNumber(Token value) {
+  switch (value.type) {
   case INTEGER:
-    return (Number){INTEGER, {.integer = atoi(node.value.string->string)}};
+    return (Number){INTEGER, {.integer = atoi(value.string->string)}};
   case FLOAT:
-    return (Number){FLOAT, {.decimal = atof(node.value.string->string)}};
+    return (Number){FLOAT, {.decimal = atof(value.string->string)}};
   }
   return (Number){0, {}};
 }
 Number calc(Node *node) {
   if (node->children[LEFT] == NULL) {
-    return specifierNumber(*node);
+    return specifyNumber(node->value);
   }
   return calcOp(calc(node->children[LEFT]), calc(node->children[RIGHT]), *node);
 }
 Number calcOp(Number a, Number b, Node node) {
   PRINTF("op: ");
   printNumber(a);
-  PRINTF(" %c ", getOperator(node));
+  printf(" %c ", getOperator(node));
   printNumber(b);
-  PRINTF("\n");
+  printf("\n");
   switch (getOperator(node)) {
   case Add:
     PRINTF("+");

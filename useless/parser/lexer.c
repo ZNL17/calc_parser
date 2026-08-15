@@ -153,20 +153,25 @@ int consumerNumber(Tokens *array, char **str, int *index) {
 void setToken(Tokens *array, Type type, char *cstring, int start, int end) {
   String *string = substring(cstring, start, end);
   Span span = {start, end};
-  Token token = {string, span, type};
+  Token token = {type, string, span};
   appendToken(array, &token);
 }
 void setTokenChar(Tokens *array, Type type, char c, int start, int end) {
   String *string = string_new();
   appendChar(string, c);
   Span span = {start, end};
-  Token token = {string, span, type};
+  Token token = {type, string, span};
   appendToken(array, &token);
 }
 //^(0|\d+)$
 int isInteger(Tokens *array, char *str, int index) {}
 //^(0.\d+|\d.\d+)$
 int isRightSideFloat(char **str, int *index) {
+  if (!isNumber(**str)) {
+    return 0;
+  }
+  (*str)++;
+  (*index)++;
   for (; *str; (*index)++) {
     if (!isNumber(**str)) {
       return 1;
@@ -237,5 +242,6 @@ void printTokens(Tokens *tokens) {
     printf("<%s>", token.string->string);
     // printf("<%.*s>,", getSpanSize(token.span), str + token.span.start);
   }
+  printf("\n");
 }
 int isTokenChar(Token token, char c) { return token.string->string[0] == c; }

@@ -1,6 +1,7 @@
 #ifndef LEXER_H
 #define LEXER_H
 #include "new_string.h"
+#define UNKNOWN 0
 typedef enum {
   INTEGER = 1,
   FLOAT = 2,
@@ -13,9 +14,9 @@ typedef struct {
   int end;
 } Span;
 typedef struct {
+  Type type;
   String *string;
   Span span;
-  Type type;
 } Token;
 
 typedef struct {

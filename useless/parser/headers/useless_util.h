@@ -1,5 +1,6 @@
 #ifndef USELESS_UTIL_H
 #define USELESS_UTIL_H
+#include "expression.h"
 #include "new_string.h"
 #include <string.h>
 int roundCapacity(int s);
@@ -12,5 +13,6 @@ String toHex(char c);
 int findC(char *cstr, char c);
 int lastC(char *cstr, char c);
 void printdebug(char *c);
+Number whichNumber(String string);
 #endif
 #define HEX 16

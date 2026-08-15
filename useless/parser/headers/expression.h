@@ -40,6 +40,7 @@ void freeList(Node *node);
 void freeNode(Node *node);
 Number calc(Node *node);
 Number calcOp(Number a, Number b, Node node);
+Number specifyNumber(Token value);
 Number add(Number a, Number b);
 Number substract(Number a, Number b);
 Number multiply(Number a, Number b);

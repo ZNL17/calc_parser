@@ -1,7 +1,11 @@
 #include "headers/useless_util.h"
+#include "headers/expression.h"
+#include "headers/lexer.h"
 #include "headers/new_string.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #define AT_LEAST_TWO 3
 #define GROWTH 10
 int roundCapacity(int s) { return s + (GROWTH - s % GROWTH); }
@@ -100,4 +104,30 @@ void printdebug(char *c) {
     c++;
   }
   printf(">");
+}
+Number whichNumber(String string) {
+  char *cString = string.string;
+  if (!isNumber(*cString)) {
+    return (Number){UNKNOWN, {}};
+  }
+  cString++;
+  for (; *cString; cString++) {
+    if (!isNumber(*cString)) {
+      if (*cString == '.' || *cString == ',') {
+        cString++;
+        if (!isNumber(*cString)) {
+          return (Number){UNKNOWN, {}};
+        }
+        cString++;
+        for (; *cString; cString++) {
+          if (!isNumber(*cString)) {
+            return (Number){FLOAT, {.decimal = atof(string.string)}};
+          }
+        }
+        return (Number){FLOAT, {.decimal = atof(string.string)}};
+      }
+      return (Number){INTEGER, {.integer = atoi(string.string)}};
+    }
+  }
+  return (Number){INTEGER, {.integer = atoi(string.string)}};
 }

@@ -5,7 +5,7 @@
 #include "headers/useless_util.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define PRINTF printf
+#define PRINTF
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     return EXIT_FAILURE;
@@ -33,15 +33,19 @@ int main(int argc, char *argv[]) {
     printf("result: ");
     printNumber(result);
     printf("\n");
-    Number expect = {INTEGER, {atoi(rows->strings[2]->string)}};
+    Number expect = whichNumber(*(rows->strings[2]));
     if (equal(result, expect)) {
+      win++;
       continue;
     }
+    loss++;
     printf("assert failed for %s\n", rows->strings[1]->string);
     printf("expected %s\n", rows->strings[2]->string);
     printf("given ");
     printNumber(result);
   }
+  printf("tests: %d,win: %d, loss: %d\n", win + loss, win, loss);
+  printf("pass rate: %d\%\n", (win / (win + loss)) * 100);
   fclose(file);
 }
 Number parse(Tokens *tokens) {
@@ -49,18 +53,33 @@ Number parse(Tokens *tokens) {
   Node *tailNode = NULL;
   Stack *stack = CStack();
   int i = 0;
-  Token currNum;
+  Token currNum = (Token){UNKNOWN, NULL};
   for (; i < tokens->size; i++) {
     Token token = tokens->tokens[i];
     if (token.type == PARENTHESES && isTokenChar(token, '(')) {
+      PRINTF("(stack size: %d\n", stack->size);
       State state = CState(headNode, tailNode);
+      if (state.head == NULL || state.tail == NULL) {
+        printf("why \n");
+      }
       push(stack, &state);
       headNode = NULL;
       tailNode = NULL;
+      currNum = (Token){UNKNOWN, NULL};
       continue;
     }
     if (token.type == PARENTHESES && isTokenChar(token, ')')) {
+      if (currNum.type != UNKNOWN) {
+        PRINTF("last ) add\n");
+        // printNode(tailNode, "add last to tailNode");
+        addChildNode(tailNode, currNum, RIGHT);
+        currNum = (Token){UNKNOWN, NULL};
+      }
+      PRINTF(")stack size: %d\n", stack->size);
       State state = pop(stack);
+      if (state.head == NULL) {
+        PRINTF("yolo\n");
+      }
       if (tailNode == NULL) {
         state.head = headNode;
         state.tail = tailNode;
@@ -72,11 +91,13 @@ Number parse(Tokens *tokens) {
       continue;
     }
     if (token.type == INTEGER || token.type == FLOAT) {
+      PRINTF("int\n");
       currNum = token;
       continue;
     }
     Node *currNode = CNode();
     currNode->value = token;
+    PRINTF("add childnode\n");
     addChildNode(currNode, currNum, LEFT);
     PRINTF("add op to tree\n");
     if (tailNode == NULL) {
@@ -89,9 +110,9 @@ Number parse(Tokens *tokens) {
     addExprToTree(currNode, &headNode, &tailNode);
     PRINTF("-------------------------------------\n");
   }
-  if (currNum.type != 0) {
+  if (currNum.type != UNKNOWN) {
     PRINTF("add last num to tree\n");
-    printNode(tailNode, "add last to tailNode");
+    // printNode(tailNode, "add last to tailNode");
     addChildNode(tailNode, currNum, RIGHT);
     PRINTF("after added last \n");
   }
