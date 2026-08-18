@@ -30,7 +30,7 @@ typedef struct {
 
 Node *CNode();
 void addExprToTree(Node *currNode, Node **headNode, Node **tailNode);
-void addChildNode(Node *parent, Token value, int direction);
+void addChildNode(Node *parent, Node *value, int direction);
 int operatorCmp(Operator curr, Operator other);
 int operatorTokenCmp(Token curr, Token other);
 char getOperator(Node node);
@@ -41,6 +41,7 @@ void freeNode(Node *node);
 Number calc(Node *node);
 Number calcOp(Number a, Number b, Node node);
 Number specifyNumber(Token value);
+String *fmtNumber(Number number);
 Number add(Number a, Number b);
 Number substract(Number a, Number b);
 Number multiply(Number a, Number b);

@@ -5,7 +5,6 @@
 #include <string.h>
 int roundCapacity(int s);
 int isNumber(char c);
-void reverseCStr(char *cstr);
 char *rstrcpy(char *dest, const char *src);
 void *rmemcpy(void *destpp, void *srcpp, size_t n);
 char decToHex(int d);

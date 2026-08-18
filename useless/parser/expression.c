@@ -1,8 +1,9 @@
 #include "headers/expression.h"
 #include "headers/lexer.h"
+#include "headers/new_string.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define PRINTF
+#define PRINTF printf
 
 void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
   printNode(currNode, "currNode");
@@ -53,11 +54,23 @@ void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
 Number specifyNumber(Token value) {
   switch (value.type) {
   case INTEGER:
-    return (Number){INTEGER, {.integer = atoi(value.string->string)}};
+    return (Number){INTEGER, {.integer = atoi(value.string->value)}};
   case FLOAT:
-    return (Number){FLOAT, {.decimal = atof(value.string->string)}};
+    return (Number){FLOAT, {.decimal = atof(value.string->value)}};
   }
   return (Number){0, {}};
+}
+String *fmtNumber(Number number) {
+  String *fmt = string_new();
+  switch (number.type) {
+  case INTEGER:
+    string_append_cstring(fmt, "%d");
+    return fmt;
+  case FLOAT:
+    string_append_cstring(fmt, "%f");
+    return fmt;
+  }
+  return fmt;
 }
 Number calc(Node *node) {
   if (node->children[LEFT] == NULL) {
@@ -169,10 +182,10 @@ Operator whichOperator(Token token) {
   if (token.type != OPERATOR) {
     return 0;
   }
-  if (!*token.string->string) {
+  if (!*token.string->value) {
     return 0;
   }
-  switch (*token.string->string) {
+  switch (*token.string->value) {
   case '+':
     return Add;
   case '-':
@@ -191,12 +204,10 @@ Node *CNode() {
   node->children[LEFT] = NULL;
   return node;
 }
-void addChildNode(Node *parent, Token value, int direction) {
-  Node *node = CNode();
-  node->value = value;
-  node->parent = parent;
-  parent->children[direction] = node;
+void addChildNode(Node *parent, Node *value, int direction) {
+  parent->children[direction] = value;
 }
+int number_len(Number n) {}
 void printNumber(Number n) {
   if (n.type == FLOAT) {
     printf("%f", n.numeric.decimal);
@@ -209,7 +220,9 @@ void printNode(Node *node, char *name) {
     printf("is Null\n");
     return;
   }
-  PRINTF("%s (%c, %d)\n", name, getOperator(*node), node->value.type);
+  printf("%s (%c)\n", name, getOperator(*node));
+  // printNode(node->children[LEFT], "node>");
+  // printNode(node->children[RIGHT], "node>");
 }
 void freeList(Node *node) {
   Node *curr = node;

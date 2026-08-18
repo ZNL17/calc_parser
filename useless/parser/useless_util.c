@@ -15,17 +15,6 @@ int isNumber(char c) {
   }
   return 1;
 }
-void reverseCStr(char *cstr) {
-  int size = strlen(cstr);
-  if (size < 2)
-    return;
-  char ctmp;
-  for (int i = 0; i < size / 2; i++) {
-    ctmp = cstr[size - 1 - i];
-    cstr[size - 1 - i] = cstr[i];
-    cstr[i] = ctmp;
-  }
-}
 char *rstrcpy(char *dest, const char *src) {
   dest += strlen(dest);
   *dest = '\n';
@@ -57,20 +46,20 @@ char decToHex(int d) {
   return 'K' - d;
 }
 String toHex(char c) {
-  String *s = string_add_value_new("\\x");
-  String *tmp = string_add_value_new("");
+  String *s = string_new_value("\\x");
+  String *tmp = string_new_value("");
   int q = c;
   while (q) {
     char r = decToHex(q % HEX);
     q = q / HEX;
-    appendCStr(tmp, &r);
+    string_append_cstring(tmp, &r);
   }
   if (tmp->size < AT_LEAST_TWO) {
     char c = '0';
-    appendCStr(tmp, &c);
+    string_append_cstring(tmp, &c);
   }
-  reverseCStr(tmp->string);
-  appendStr(s, tmp);
+  string_reverse(tmp->value);
+  string_append_cstring(s, tmp->value);
   free_string(tmp);
   return *s;
 }
@@ -96,7 +85,7 @@ void printdebug(char *c) {
   printf("<");
   while (*c) {
     if (*c < ' ' || *c == 127) {
-      printf("%s", toHex(*c).string);
+      printf("%s", toHex(*c).value);
       c++;
       continue;
     }
@@ -106,7 +95,7 @@ void printdebug(char *c) {
   printf(">");
 }
 Number whichNumber(String string) {
-  char *cString = string.string;
+  char *cString = string.value;
   if (!isNumber(*cString)) {
     return (Number){UNKNOWN, {}};
   }
@@ -121,13 +110,13 @@ Number whichNumber(String string) {
         cString++;
         for (; *cString; cString++) {
           if (!isNumber(*cString)) {
-            return (Number){FLOAT, {.decimal = atof(string.string)}};
+            return (Number){FLOAT, {.decimal = atof(string.value)}};
           }
         }
-        return (Number){FLOAT, {.decimal = atof(string.string)}};
+        return (Number){FLOAT, {.decimal = atof(string.value)}};
       }
-      return (Number){INTEGER, {.integer = atoi(string.string)}};
+      return (Number){INTEGER, {.integer = atoi(string.value)}};
     }
   }
-  return (Number){INTEGER, {.integer = atoi(string.string)}};
+  return (Number){INTEGER, {.integer = atoi(string.value)}};
 }

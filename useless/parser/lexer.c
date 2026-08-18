@@ -158,7 +158,7 @@ void setToken(Tokens *array, Type type, char *cstring, int start, int end) {
 }
 void setTokenChar(Tokens *array, Type type, char c, int start, int end) {
   String *string = string_new();
-  appendChar(string, c);
+  string_append_char(string, c);
   Span span = {start, end};
   Token token = {type, string, span};
   appendToken(array, &token);
@@ -214,7 +214,7 @@ void appendToken(Tokens *array, Token *token) {
   array->size++;
 }
 String *getToken(Type type) {
-  String *token = string_add_value_new("<UNKNOWN>");
+  String *token = string_new_value("<UNKNOWN>");
   switch (type) {
   case INTEGER:
     string_set_cstrings(token, "<INTEGER> -> ");
@@ -238,10 +238,10 @@ int getSpanSize(Span span) { return (span.end - span.start) + 1; }
 void printTokens(Tokens *tokens) {
   for (int i = 0; i < tokens->size; i++) {
     Token token = tokens->tokens[i];
-    printf("%s", getToken(token.type)->string);
-    printf("<%s>", token.string->string);
+    printf("%s", getToken(token.type)->value);
+    printf("<%s>", token.string->value);
     // printf("<%.*s>,", getSpanSize(token.span), str + token.span.start);
   }
   printf("\n");
 }
-int isTokenChar(Token token, char c) { return token.string->string[0] == c; }
+int isTokenChar(Token token, char c) { return token.string->value[0] == c; }
