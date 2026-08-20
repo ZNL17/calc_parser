@@ -2,6 +2,8 @@
 #define LEXER_H
 #include "new_string.h"
 #define UNKNOWN 0
+#define HORIZONTAL_TAB '\x09'
+#define SPACE '\x20'
 typedef enum {
   INTEGER = 1,
   FLOAT = 2,
@@ -28,6 +30,8 @@ typedef struct {
 Tokens *lexer(char *str);
 int whiteList(char c);
 int consumeWhiteSpace(Tokens *array, char **str, int *index);
+int consumeInteger(Tokens *tokens, char **str, int *index);
+int consumeFloat(Tokens *tokens, char **str, int *index);
 int consumerNumber(Tokens *array, char **str, int *index);
 int isRightSideFloat(char **str, int *index);
 int isWhiteSpace(char c);

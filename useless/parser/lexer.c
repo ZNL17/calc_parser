@@ -4,7 +4,6 @@
 #include "headers/useless_util.h"
 #include <stdio.h>
 #include <stdlib.h>
-/*
 int main(int argc, char *argv[]) {
   FILE *ptr;
   ptr = fopen(argv[1], "r");
@@ -21,17 +20,16 @@ int main(int argc, char *argv[]) {
       continue;
     }
     strip_mark(rows->strings[1]);
-    printf("input: %s: \n", rows->strings[1]->string);
-    Tokens *tokens = lexer(rows->strings[1]->string);
+    printf("input: %s: \n", rows->strings[1]->value);
+    Tokens *tokens = lexer(rows->strings[1]->value);
     printf("tokens size(%d): \n", tokens->size);
-    printTokens(rows->strings[1]->string, tokens);
+    printTokens(tokens);
     printf("\niter end\n");
   }
   return EXIT_SUCCESS;
 }
-*/
 Tokens *lexer(char *str) {
-  Tokens *array = array_new();
+  Tokens *tokens = array_new();
   int i = 0;
   while (*str) {
     if (!whiteList(*str)) {
@@ -40,21 +38,23 @@ Tokens *lexer(char *str) {
     if (isWhiteSpace(*str)) {
       goto Next;
     }
-    if (isOperator(array, *str, i)) {
+    if (isOperator(tokens, *str, i)) {
       goto Next;
     }
-    if (isParentheses(array, *str, i)) {
+    if (isParentheses(tokens, *str, i)) {
       goto Next;
     }
-    if (consumerNumber(array, &str, &i)) {
-      break;
+    if (consumeInteger(tokens, &str, &i)) {
+      goto Next;
     }
-    continue;
+    if (consumeFloat(tokens, &str, &i)) {
+      goto Next;
+    }
   Next:
     str++;
     i++;
   }
-  return array;
+  return tokens;
 }
 int whiteList(char c) {
   if (c == '\x09' || c == '\x20') {
@@ -97,18 +97,18 @@ Valid:
   return 0;
 }
 int isWhiteSpace(char c) {
-  if (c == '\x20' || c == '\x09') {
+  if (c == SPACE || c == HORIZONTAL_TAB) {
     return 1;
   }
   return 0;
 }
-int isOperator(Tokens *array, char c, int index) {
+int isOperator(Tokens *tokens, char c, int index) {
   switch (c) {
   case Add:
   case Substract:
   case Multply:
   case Divide:
-    setTokenChar(array, OPERATOR, c, index, index + 1);
+    setTokenChar(tokens, OPERATOR, c, index, index + 1);
     return 1;
   }
   return 0;
@@ -119,6 +119,59 @@ int isParentheses(Tokens *array, char c, int index) {
     return 1;
   }
   return 0;
+}
+int consumeInteger(Tokens *tokens, char **str, int *index) {
+  if (!isNumber(**str)) {
+    return 0;
+  }
+  char *startChar = (*str)++;
+  int startIndex = (*index)++;
+  for (; **str; (*str)++) {
+    if (!isNumber(**str)) {
+      if (**str == '.') {
+        *str = startChar;
+        *index = startIndex;
+        return 0;
+      }
+      break;
+    }
+    (*index)++;
+  }
+  setToken(tokens, INTEGER, *str - *index, startIndex, *index);
+  (*str)--;
+  (*index)--;
+  return 1;
+}
+//^-?\d+\.\d+$
+int consumeFloat(Tokens *tokens, char **str, int *index) {
+  if (!isNumber(**str)) {
+    return 0;
+  }
+  char *startChar = (*str)++;
+  int startIndex = (*index)++;
+  for (; **str; (*str)++) {
+    if (!isNumber(**str)) {
+      if (**str != '.') {
+        *str = startChar;
+        *index = startIndex;
+        return 0;
+      }
+      (*str)++;
+      (*index)++;
+      break;
+    }
+    (*index)++;
+  }
+  for (; **str; (*str)++) {
+    if (!isNumber(**str)) {
+      break;
+    }
+    (*index)++;
+  }
+  setToken(tokens, FLOAT, *str - *index, startIndex, *index);
+  (*str)--;
+  (*index)--;
+  return 1;
 }
 int consumerNumber(Tokens *array, char **str, int *index) {
   if (!isNumber(**str)) {
@@ -239,7 +292,7 @@ void printTokens(Tokens *tokens) {
   for (int i = 0; i < tokens->size; i++) {
     Token token = tokens->tokens[i];
     printf("%s", getToken(token.type)->value);
-    printf("<%s>", token.string->value);
+    printf("<%s>\n", token.string->value);
     // printf("<%.*s>,", getSpanSize(token.span), str + token.span.start);
   }
   printf("\n");
