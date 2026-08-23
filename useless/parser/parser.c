@@ -55,7 +55,10 @@ void fileParse(char *argv[]) {
       continue;
     }
     strip_mark(rows->strings[1]);
+    printf("%s\n", rows->strings[1]->value);
     Tokens *tokens = lexer(rows->strings[1]->value);
+    negation_rule(tokens);
+    printTokens(tokens);
     int i = 0;
     Node *headNode = recursivParse(tokens, &i, 0);
     if (headNode == NULL) {
@@ -149,10 +152,16 @@ int negation_rule(Tokens *tokens) {
     if (isTokenChar(*token, '-')) {
       if (sign == 0) {
         sign = 1;
-        if (!i || !isTokenNumber((tokens->tokens + i - 1)->type)) {
+        if (!i) {
           continue;
         }
-        goto Next;
+        if (isTokenNumber((tokens->tokens + i - 1)->type)) {
+          goto Next;
+        }
+        if (isTokenChar(*(tokens->tokens + i - 1), ')')) {
+          goto Next;
+        }
+        continue;
       }
       sign *= -1;
       continue;
@@ -161,15 +170,11 @@ int negation_rule(Tokens *tokens) {
       char negNum[token->string->size + 1];
       negNum[0] = '-';
       strcat(negNum, token->string->value);
-      printf("strcat: %s\n", negNum);
       string_set_cstrings(token->string, negNum);
-      printf("append: %s\n", token->string->value);
     }
-    sign = 0;
   Next:
+    sign = 0;
     appendToken(new_tokens, token);
-    printf("%d: \n", i);
-    printTokens(new_tokens);
   }
   tokens->tokens = new_tokens->tokens;
   tokens->size = new_tokens->size;
