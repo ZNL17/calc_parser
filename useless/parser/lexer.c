@@ -4,6 +4,7 @@
 #include "headers/useless_util.h"
 #include <stdio.h>
 #include <stdlib.h>
+/*
 int main(int argc, char *argv[]) {
   FILE *ptr;
   ptr = fopen(argv[1], "r");
@@ -28,8 +29,9 @@ int main(int argc, char *argv[]) {
   }
   return EXIT_SUCCESS;
 }
+*/
 Tokens *lexer(char *str) {
-  Tokens *tokens = array_new();
+  Tokens *tokens = tokens_new();
   int i = 0;
   while (*str) {
     if (!whiteList(*str)) {
@@ -239,7 +241,8 @@ int isSeperator(char c) {
   }
   return 0;
 }
-Tokens *array_new() {
+int isTokenNumber(Type type) { return type == INTEGER || type == FLOAT; }
+Tokens *tokens_new() {
   Tokens *ptr = (Tokens *)malloc(sizeof(Tokens));
   if (ptr == NULL) {
     return (Tokens *)NULL;
@@ -253,18 +256,18 @@ Tokens *array_new() {
   ptr->capacity = 10;
   return ptr;
 }
-void appendToken(Tokens *array, Token *token) {
-  if (array->size + 1 > array->capacity) {
-    int capacity = roundCapacity(array->size + 1);
-    Token *ptr = (Token *)realloc(array->tokens, sizeof(Token) * capacity);
+void appendToken(Tokens *tokens, Token *token) {
+  if (tokens->size + 1 > tokens->capacity) {
+    int capacity = roundCapacity(tokens->size + 1);
+    Token *ptr = (Token *)realloc(tokens->tokens, sizeof(Token) * capacity);
     if (ptr == NULL) {
       return;
     }
-    array->tokens = ptr;
-    array->capacity = capacity;
+    tokens->tokens = ptr;
+    tokens->capacity = capacity;
   }
-  memcpy(array->tokens + array->size, token, sizeof(Token));
-  array->size++;
+  memcpy(tokens->tokens + tokens->size, token, sizeof(Token));
+  tokens->size++;
 }
 String *getToken(Type type) {
   String *token = string_new_value("<UNKNOWN>");

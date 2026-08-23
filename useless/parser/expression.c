@@ -1,6 +1,7 @@
 #include "headers/expression.h"
 #include "headers/lexer.h"
 #include "headers/new_string.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #define PRINTF printf
@@ -107,7 +108,7 @@ float intToFloat(Number a) {
   return (float)a.numeric.integer;
 }
 Number add(Number a, Number b) {
-  if (a.type + b.type > 2) {
+  if (a.type + b.type > (INTEGER + INTEGER)) {
     return (Number){.type = FLOAT, {.decimal = intToFloat(a) + intToFloat(b)}};
   }
   return (Number){.type = INTEGER,
@@ -115,34 +116,30 @@ Number add(Number a, Number b) {
 }
 
 Number substract(Number a, Number b) {
-  if (a.type + b.type > 2) {
+  if (a.type + b.type > (INTEGER + INTEGER)) {
     return (Number){.type = FLOAT, {.decimal = intToFloat(a) - intToFloat(b)}};
   }
   return (Number){.type = INTEGER,
                   {.integer = a.numeric.integer - b.numeric.integer}};
 }
 Number multiply(Number a, Number b) {
-  if (a.type + b.type > 2) {
+  if (a.type + b.type > (INTEGER + INTEGER)) {
     return (Number){.type = FLOAT, {.decimal = intToFloat(a) * intToFloat(b)}};
   }
   return (Number){.type = INTEGER,
                   {.integer = a.numeric.integer * b.numeric.integer}};
 }
 Number divide(Number a, Number b) {
-  if ((a.type + b.type) > (INTEGER + INTEGER)) {
-    return (Number){.type = FLOAT, {.decimal = intToFloat(a) / intToFloat(b)}};
-  }
-  return (Number){.type = INTEGER,
-                  {.integer = a.numeric.integer / b.numeric.integer}};
+  return (Number){.type = FLOAT, {.decimal = intToFloat(a) / intToFloat(b)}};
 }
 int equal(Number a, Number b) {
   switch (a.type + b.type) {
   case INTEGER + INTEGER:
     return a.numeric.integer == b.numeric.integer;
   case FLOAT + FLOAT:
-    return a.numeric.decimal == b.numeric.decimal;
+    return fabsf(a.numeric.decimal - b.numeric.decimal) < 0.01;
   case INTEGER + FLOAT:
-    return intToFloat(a) == intToFloat(b);
+    return fabsf(intToFloat(a) - intToFloat(b)) < 0.01;
   }
   return 0;
 }

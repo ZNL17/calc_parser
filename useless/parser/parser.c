@@ -2,19 +2,43 @@
 #include "headers/expression.h"
 #include "headers/lexer.h"
 #include "headers/new_string.h"
-#include "headers/stack.h"
 #include "headers/useless_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdnoreturn.h>
 #define PRINTF
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     return EXIT_FAILURE;
   }
-  FILE *file = fopen(argv[1], "r");
+  if (argc == 2) {
+    parse(argv);
+  }
+  if (!strcmp(argv[1], "-f")) {
+    fileParse(argv);
+  }
+}
+void parse(char *argv[]) {
+  Tokens *tokens = lexer(argv[1]);
+  printf("lex:----------------\n");
+  printTokens(tokens);
+  negation_rule(tokens);
+  printf("neg:-___---------------\n");
+  printTokens(tokens);
+  int i = 0;
+  printf("lol\n");
+  Node *headNode = recursivParse(tokens, &i, 0);
+  if (headNode == NULL) {
+    return;
+  }
+  Number result = calc(headNode);
+  printNumber(result);
+}
+void fileParse(char *argv[]) {
+
+  FILE *file = fopen(argv[2], "r");
   if (file == NULL) {
-    return EXIT_FAILURE;
+    return;
   }
   int win = 0;
   int loss = 0;
@@ -35,8 +59,7 @@ int main(int argc, char *argv[]) {
     int i = 0;
     Node *headNode = recursivParse(tokens, &i, 0);
     if (headNode == NULL) {
-      printf(" isNull\n");
-      return 0;
+      return;
     }
     Number result = calc(headNode);
     printf("result: ");
@@ -118,87 +141,41 @@ Node *recursivParse(Tokens *tokens, int *index, int level) {
   addChildNode(tailNode, leftNode, RIGHT);
   return headNode;
 }
-Node *parse(Tokens *tokens) {
-  Node *headNode = NULL;
-  Node *tailNode = NULL;
-  Node *leftNode = NULL;
-  Stack *stack = CStack();
-  int i = 0;
-  Token currNum = (Token){UNKNOWN, NULL};
-  for (; i < tokens->size; i++) {
-    Token token = tokens->tokens[i];
-    if (token.type == PARENTHESES && isTokenChar(token, '(')) {
-      printNodes(headNode);
-      PRINTF("(stack size: %d\n", stack->size);
-      State state = CState(headNode, tailNode);
-      push(stack, &state);
-      printf("push success state\n");
-      headNode = NULL;
-      tailNode = NULL;
-      currNum = (Token){UNKNOWN, NULL};
-      continue;
-    }
-    if (token.type == PARENTHESES && isTokenChar(token, ')')) {
-      printNodes(headNode);
-      if (currNum.type != UNKNOWN) {
-        PRINTF("last ) add %s\n", currNum.string->value);
-        // printNode(tailNode, "add last to tailNode");
-        leftNode = CNode();
-        leftNode->value = currNum;
-        addChildNode(tailNode, leftNode, RIGHT);
-        currNum = (Token){UNKNOWN, NULL};
+int negation_rule(Tokens *tokens) {
+  Tokens *new_tokens = tokens_new();
+  int sign = 0;
+  for (int i = 0; i < tokens->size; i++) {
+    Token *token = tokens->tokens + i;
+    if (isTokenChar(*token, '-')) {
+      if (sign == 0) {
+        sign = 1;
+        if (!i || !isTokenNumber((tokens->tokens + i - 1)->type)) {
+          continue;
+        }
+        goto Next;
       }
-      PRINTF(")stack size: %d\n", stack->size);
-      State state = pop(stack);
-      printf("pop success\n");
-      if (state.head == NULL || state.tail == NULL) {
-        PRINTF("continue because all null\n");
-        continue;
-      }
-      state.tail->children[RIGHT] = headNode;
-      headNode = state.head;
-      tailNode = state.tail;
+      sign *= -1;
       continue;
     }
-    if (token.type == INTEGER || token.type == FLOAT) {
-      PRINTF("int %s\n", token.string->value);
-      currNum = token;
-      continue;
+    if (sign != 0 && (token->type == INTEGER || token->type == FLOAT)) {
+      char negNum[token->string->size + 1];
+      negNum[0] = '-';
+      strcat(negNum, token->string->value);
+      printf("strcat: %s\n", negNum);
+      string_set_cstrings(token->string, negNum);
+      printf("append: %s\n", token->string->value);
     }
-    Node *currNode = CNode();
-    currNode->value = token;
-    if (currNum.type != UNKNOWN) {
-      leftNode = CNode();
-      leftNode->value = currNum;
-    } else {
-      leftNode = headNode;
-    }
-    addChildNode(currNode, leftNode, LEFT);
-    if (tailNode == NULL) {
-      PRINTF("current node empty\n");
-      headNode = currNode;
-      tailNode = currNode;
-      continue;
-    }
-    addExprToTree(currNode, &headNode, &tailNode);
-    PRINTF("added to exp tree\n");
-    PRINTF("-------------------------------------\n");
+    sign = 0;
+  Next:
+    appendToken(new_tokens, token);
+    printf("%d: \n", i);
+    printTokens(new_tokens);
   }
-  if (currNum.type != UNKNOWN) {
-    PRINTF("add last num to tree (%s)\n", tailNode->value.string->value);
-    // printNode(tailNode, "add last to tailNode");
-    leftNode = CNode();
-    leftNode->value = currNum;
-    addChildNode(tailNode, leftNode, RIGHT);
-    PRINTF("after added last \n");
-  }
-  PRINTF("calc\n");
-  // freeStr(&currNum);
-  return headNode;
-Fail:
-  PRINTF("ENTERED INCORRECT SYMBOLS\n");
-  return NULL;
+  tokens->tokens = new_tokens->tokens;
+  tokens->size = new_tokens->size;
+  return 1;
 }
+
 State CState(Node *head, Node *tail) {
   State state;
   state.head = head;
@@ -208,7 +185,6 @@ State CState(Node *head, Node *tail) {
 NodeList *nodeList_new() {
   NodeList *nodeListPtr = (NodeList *)malloc(sizeof(NodeList));
   if (nodeListPtr == NULL) {
-    printf("null1\n");
     return (NodeList *)NULL;
   }
   Node **nodePtr = (Node **)malloc(sizeof(Node *) * 10);
@@ -226,22 +202,16 @@ void nodeList_append(NodeList *nodeList, Node *node) {
   printf("no%d, %d\n", nodeList->size + 1, nodeList->capacity);
   printf("wo\n");
   if (nodeList->size + 1 > nodeList->capacity) {
-    printf("lol]n\n");
     int capacity = roundCapacity(nodeList->size + 1);
-    printf("cap>%d:%d\n", capacity, sizeof(Node *));
     printf("%lu\n", (long unsigned int)nodeList->node);
     Node **ptr = (Node **)realloc(nodeList->node, capacity * sizeof(Node *));
-    printf("printf\n");
     printf("%lu\n", (long unsigned int)ptr);
     if (ptr == NULL) {
-      printf("null\n");
       return;
     }
     nodeList->node = ptr;
-    printf("cappp\n");
     nodeList->capacity = capacity;
   }
-  printf("yes\n");
   nodeList->node[nodeList->size] = node;
   nodeList->size++;
 }
