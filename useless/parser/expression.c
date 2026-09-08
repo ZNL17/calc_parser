@@ -4,53 +4,34 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define PRINTF printf
 
 void addExprToTree(Node *currNode, Node **headNode, Node **tailNode) {
-  printNode(currNode, "currNode");
-  printNode(*headNode, "headNode");
-  printNode(*tailNode, "tailNode");
   int cmp = operatorCmp(whichOperator(currNode->value),
                         whichOperator((*tailNode)->value));
-  PRINTF("cmp\n");
   if (cmp < 1) {
-    PRINTF("currNode is equal/lesser\n");
     Node *prev = *tailNode;
     while (prev->parent != NULL) {
-      PRINTF("iter start\n");
       if (0 < operatorTokenCmp(currNode->value, prev->parent->value)) {
-        PRINTF("found node() that is smaller %c > %c\n", getOperator(*currNode),
-               getOperator(*prev->parent));
-        PRINTF("break\n");
         break;
       }
       prev = prev->parent;
-      PRINTF("switch to next iter\n");
     }
-    PRINTF("finished search\n");
     if (prev->parent == NULL) {
-      printNode(prev, "prev-parent is null this is prev");
       *headNode = currNode;
     } else {
-      printNode(prev->parent, "prev-parent is not head");
       prev->parent->children[RIGHT] = currNode;
       currNode->parent = prev->parent;
     }
-    PRINTF("add to tail\n");
     (*tailNode)->children[RIGHT] = currNode->children[LEFT];
     (*tailNode)->children[RIGHT]->parent = *tailNode;
-    PRINTF("add to left\n");
     currNode->children[LEFT] = prev;
     prev->parent = currNode;
     *tailNode = currNode;
-    PRINTF("return < 1\n");
     return;
   }
-  PRINTF("currNode is greater\n");
   (*tailNode)->children[RIGHT] = currNode;
   currNode->parent = *tailNode;
   *tailNode = currNode;
-  PRINTF("return > 0\n");
 }
 Number specifyNumber(Token value) {
   switch (value.type) {
@@ -80,28 +61,19 @@ Number calc(Node *node) {
   return calcOp(calc(node->children[LEFT]), calc(node->children[RIGHT]), *node);
 }
 Number calcOp(Number a, Number b, Node node) {
-  PRINTF("op: ");
-  printNumber(a);
-  printf(" %c ", getOperator(node));
-  printNumber(b);
-  printf("\n");
   switch (getOperator(node)) {
   case Add:
-    PRINTF("+");
     return add(a, b);
   case Substract:
-    PRINTF("-");
     return substract(a, b);
   case Multply:
-    PRINTF("*");
     return multiply(a, b);
   case Divide:
-    PRINTF("/");
     return divide(a, b);
   }
   return (Number){0, {}};
 }
-float intToFloat(Number a) {
+double intToFloat(Number a) {
   if (a.type == FLOAT) {
     return a.numeric.decimal;
   }
@@ -217,7 +189,6 @@ void printNode(Node *node, char *name) {
     printf("is Null\n");
     return;
   }
-  printf("%s (%c)\n", name, getOperator(*node));
   // printNode(node->children[LEFT], "node>");
   // printNode(node->children[RIGHT], "node>");
 }

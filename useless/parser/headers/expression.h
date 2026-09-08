@@ -21,7 +21,7 @@ struct _Node {
 };
 typedef union {
   int integer;
-  float decimal;
+  double decimal;
 } Numeric;
 typedef struct {
   Type type;

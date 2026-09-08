@@ -91,7 +91,6 @@ void string_append_fmt_string(String *string, const char *fmt, ...) {
     va_end(args);
     return;
   }
-  printf("len: %d", len);
   if (string->size + len > string->capacity) {
     int capacity = roundCapacity(string->size + len);
     char *ptr = (char *)realloc(string->value, capacity);

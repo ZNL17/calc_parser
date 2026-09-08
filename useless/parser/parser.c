@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdnoreturn.h>
-#define PRINTF
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     return EXIT_FAILURE;
@@ -20,14 +19,11 @@ int main(int argc, char *argv[]) {
 }
 void parse(char *argv[]) {
   Tokens *tokens = lexer(argv[1]);
-  printf("lex:----------------\n");
-  printTokens(tokens);
   negation_rule(tokens);
-  printf("neg:-___---------------\n");
-  printTokens(tokens);
   int i = 0;
-  printf("lol\n");
+  printTokens(tokens);
   Node *headNode = recursivParse(tokens, &i, 0);
+  printTokens(tokens);
   if (headNode == NULL) {
     return;
   }
@@ -46,26 +42,26 @@ void fileParse(char *argv[]) {
   int BUFFER_SIZE = 4096;
   char buffer[BUFFER_SIZE];
   NodeList *nodeList = nodeList_new();
+  int count = 0;
   while (fgets(buffer, BUFFER_SIZE, file)) {
     StringList *rows = split(buffer, ',', -1);
     if (rows->size < 3) {
       continue;
     }
     if (!isNumber(rows->strings[2]->value[0])) {
+      count++;
       continue;
     }
     strip_mark(rows->strings[1]);
-    printf("%s\n", rows->strings[1]->value);
     Tokens *tokens = lexer(rows->strings[1]->value);
     negation_rule(tokens);
-    printTokens(tokens);
     int i = 0;
     Node *headNode = recursivParse(tokens, &i, 0);
     if (headNode == NULL) {
+      loss++;
       return;
     }
     Number result = calc(headNode);
-    printf("result: ");
     printNumber(result);
     Number expect = whichNumber(*(rows->strings[2]));
     if (equal(result, expect)) {
@@ -76,8 +72,8 @@ void fileParse(char *argv[]) {
     nodeList_append(nodeList, headNode);
     printf("loss\n");
     loss++;
-    string_append_fmt_string(error, "assert failed for %s\n",
-                             rows->strings[1]->value);
+    string_append_fmt_string(error, "assert failed for %s. %s\n",
+                             rows->strings[0]->value, rows->strings[1]->value);
     printf("w_%s", rows->strings[2]->value);
     string_append_fmt_string(error, "expected %s", rows->strings[2]->value);
     String *given = string_new_value("given ");
@@ -86,38 +82,25 @@ void fileParse(char *argv[]) {
     string_append_fmt_string(error, given->value, result);
     string_append_cstring(error, "-------------------\n");
   }
-  printf("tests: %d,win: %d, loss: %d\n", win + loss, win, loss);
-  printf("pass rate: %d\%\n", win * 100 / (win + loss));
   printf("%s", error->value);
-  printf("dd: %d", nodeList->size);
-  for (int i = 0; i < nodeList->size; i++) {
-    printf("%s\n", nodeList->node[i]->value.string->value);
-    printf("%lu\n", (unsigned long)nodeList->node[i]);
-    printNode(nodeList->node[i], "node>");
-  }
+  printf("tests: %d,win: %d, loss: %d\n", win + loss, win, loss);
+  printf("pass rate: %d%%\n", win * 100 / (win + loss));
+  printf("count: %d", count);
   fclose(file);
 }
 Node *recursivParse(Tokens *tokens, int *index, int level) {
-  printf("level: %d\n", level);
   Node *headNode = NULL;
   Node *tailNode = NULL;
   Node *leftNode = NULL;
   for (; *index < tokens->size; (*index)++) {
-    printf("size:%d\n", tokens->size);
-    printf("index:\n", *index);
     Token token = tokens->tokens[*index];
-    printf("token(%s)\n", token.string->value);
     if (token.type == PARENTHESES && isTokenChar(token, '(')) {
       (*index)++;
-      printf("(\n");
       leftNode = recursivParse(tokens, index, ++level);
       continue;
     }
     if (token.type == PARENTHESES && isTokenChar(token, ')')) {
-      printf(")%s\n", tailNode->value.string->value);
       addChildNode(tailNode, leftNode, RIGHT);
-      printf("level: %d\n", level);
-      printf(")added\n");
       return headNode;
     }
     if (token.type == INTEGER || token.type == FLOAT) {
@@ -129,14 +112,11 @@ Node *recursivParse(Tokens *tokens, int *index, int level) {
     currNode->value = token;
     addChildNode(currNode, leftNode, LEFT);
     if (tailNode == NULL) {
-      PRINTF("current node empty\n");
       headNode = currNode;
       tailNode = currNode;
-      printf("tailNode == NULL\n");
       continue;
     }
     addExprToTree(currNode, &headNode, &tailNode);
-    printf("addExprToTree\n");
   }
   if (tailNode == NULL && leftNode != NULL) {
     return leftNode;
@@ -194,7 +174,6 @@ NodeList *nodeList_new() {
   }
   Node **nodePtr = (Node **)malloc(sizeof(Node *) * 10);
   if (nodePtr == NULL) {
-    printf("null2\n");
     return (NodeList *)NULL;
   }
   NodeList *nodeList = nodeListPtr;
@@ -204,13 +183,9 @@ NodeList *nodeList_new() {
   return nodeList;
 }
 void nodeList_append(NodeList *nodeList, Node *node) {
-  printf("no%d, %d\n", nodeList->size + 1, nodeList->capacity);
-  printf("wo\n");
   if (nodeList->size + 1 > nodeList->capacity) {
     int capacity = roundCapacity(nodeList->size + 1);
-    printf("%lu\n", (long unsigned int)nodeList->node);
     Node **ptr = (Node **)realloc(nodeList->node, capacity * sizeof(Node *));
-    printf("%lu\n", (long unsigned int)ptr);
     if (ptr == NULL) {
       return;
     }
