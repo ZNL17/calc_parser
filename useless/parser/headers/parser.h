@@ -3,6 +3,8 @@
 #include "expression.h"
 #include "lexer.h"
 #include "new_string.h"
+#define MINUS 1
+#define NULL_TERM 1
 typedef struct {
   Node *head;
   Node *tail;

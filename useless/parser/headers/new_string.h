@@ -34,6 +34,7 @@ int sequence(char *string, char c, int reverse);
 int toInt(String *str);
 StringList *cStringList();
 StringList *split(char *cstring, char c, int count);
+StringList *stringList_new(); 
 void stringList_append(StringList *stringList, String *string);
 void freeStringList(StringList *stringList);
 void printNull(String *str);

@@ -46,10 +46,10 @@ String *fmtNumber(Number number) {
   String *fmt = string_new();
   switch (number.type) {
   case INTEGER:
-    string_append_cstring(fmt, "%d");
+    string_append_fmt_string(fmt, "%d",number.numeric.integer);
     return fmt;
   case FLOAT:
-    string_append_cstring(fmt, "%f");
+    string_append_fmt_string(fmt, "%f",number.numeric.decimal);
     return fmt;
   }
   return fmt;
@@ -77,7 +77,7 @@ double intToFloat(Number a) {
   if (a.type == FLOAT) {
     return a.numeric.decimal;
   }
-  return (float)a.numeric.integer;
+  return (double)a.numeric.integer;
 }
 Number add(Number a, Number b) {
   if (a.type + b.type > (INTEGER + INTEGER)) {
@@ -105,6 +105,17 @@ Number divide(Number a, Number b) {
   return (Number){.type = FLOAT, {.decimal = intToFloat(a) / intToFloat(b)}};
 }
 int equal(Number a, Number b) {
+  switch (a.type + b.type) {
+  case INTEGER + INTEGER:
+    return a.numeric.integer == b.numeric.integer;
+  case FLOAT + FLOAT:
+    return fabsf(a.numeric.decimal - b.numeric.decimal) < 0.01;
+  case INTEGER + FLOAT:
+    return fabsf(intToFloat(a) - intToFloat(b)) < 0.01;
+  }
+  return 0;
+}
+int testequal(Number a, Number b) {
   switch (a.type + b.type) {
   case INTEGER + INTEGER:
     return a.numeric.integer == b.numeric.integer;
@@ -189,8 +200,12 @@ void printNode(Node *node, char *name) {
     printf("is Null\n");
     return;
   }
-  // printNode(node->children[LEFT], "node>");
-  // printNode(node->children[RIGHT], "node>");
+  printToken(node->value);
+  if (node->children[LEFT] == NULL){
+    return;
+  }
+  printNode(node->children[LEFT], "node>");
+  printNode(node->children[RIGHT], "node>");
 }
 void freeList(Node *node) {
   Node *curr = node;

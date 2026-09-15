@@ -215,10 +215,11 @@ void stringList_append(StringList *stringList, String *string) {
   }
   if (stringList->size + 1 > stringList->capacity) {
     int capacity = roundCapacity(stringList->size + 1);
-    StringList *ptr = (StringList *)realloc(stringList->strings - 1, capacity);
+    String *ptr = (String *)realloc(stringList->strings , sizeof(String) * capacity);
     if (ptr == NULL) {
       return;
     }
+    stringList->strings = (String **) ptr;
     stringList->capacity = capacity;
   }
   stringList->strings[stringList->size++] = string;

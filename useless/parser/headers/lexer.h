@@ -44,6 +44,7 @@ void setToken(Tokens *array, Type type, char *cstring, int start, int end);
 void setTokenChar(Tokens *array, Type type, char c, int start, int end);
 int isOperator(Tokens *array, char c, int index);
 int getSpanSize(Span span);
+void printToken(Token token);
 void printTokens(Tokens *tokens);
 int isTokenChar(Token token, char c);
 #endif

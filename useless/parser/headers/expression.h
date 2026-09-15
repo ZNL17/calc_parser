@@ -47,6 +47,7 @@ Number substract(Number a, Number b);
 Number multiply(Number a, Number b);
 Number divide(Number a, Number b);
 int equal(Number a, Number b);
+int testequal(Number a, Number b); 
 void printNumber(Number n);
 void printNode(Node *node, char *name);
 #endif

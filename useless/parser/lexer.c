@@ -291,6 +291,10 @@ String *getToken(Type type) {
   return token;
 }
 int getSpanSize(Span span) { return (span.end - span.start) + 1; }
+void printToken(Token token){
+    printf("%s", getToken(token.type)->value);
+    printf("<%s>\n", token.string->value);
+}
 void printTokens(Tokens *tokens) {
   for (int i = 0; i < tokens->size; i++) {
     Token token = tokens->tokens[i];

@@ -96,7 +96,7 @@ void printdebug(char *c) {
 }
 Number whichNumber(String string) {
   char *cString = string.value;
-  if (!isNumber(*cString)) {
+  if (!isNumber(*cString) && *cString != '-') {
     return (Number){UNKNOWN, {}};
   }
   cString++;

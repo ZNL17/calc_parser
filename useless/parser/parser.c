@@ -21,9 +21,7 @@ void parse(char *argv[]) {
   Tokens *tokens = lexer(argv[1]);
   negation_rule(tokens);
   int i = 0;
-  printTokens(tokens);
   Node *headNode = recursivParse(tokens, &i, 0);
-  printTokens(tokens);
   if (headNode == NULL) {
     return;
   }
@@ -38,20 +36,19 @@ void fileParse(char *argv[]) {
   }
   int win = 0;
   int loss = 0;
-  String *error = string_new();
+  StringList *errors = stringList_new();
   int BUFFER_SIZE = 4096;
   char buffer[BUFFER_SIZE];
   NodeList *nodeList = nodeList_new();
   int count = 0;
+  //skipsr header
+  fgets(buffer, BUFFER_SIZE, file);
   while (fgets(buffer, BUFFER_SIZE, file)) {
     StringList *rows = split(buffer, ',', -1);
     if (rows->size < 3) {
       continue;
     }
-    if (!isNumber(rows->strings[2]->value[0])) {
-      count++;
-      continue;
-    }
+    count++;
     strip_mark(rows->strings[1]);
     Tokens *tokens = lexer(rows->strings[1]->value);
     negation_rule(tokens);
@@ -62,19 +59,17 @@ void fileParse(char *argv[]) {
       return;
     }
     Number result = calc(headNode);
-    printNumber(result);
     Number expect = whichNumber(*(rows->strings[2]));
     if (equal(result, expect)) {
-      printf("win\n");
       win++;
       continue;
     }
     nodeList_append(nodeList, headNode);
-    printf("loss\n");
     loss++;
+    String* error = string_new();
+    stringList_append(errors, error);
     string_append_fmt_string(error, "assert failed for %s. %s\n",
                              rows->strings[0]->value, rows->strings[1]->value);
-    printf("w_%s", rows->strings[2]->value);
     string_append_fmt_string(error, "expected %s", rows->strings[2]->value);
     String *given = string_new_value("given ");
     string_append_cstring(given, fmtNumber(result)->value);
@@ -82,7 +77,13 @@ void fileParse(char *argv[]) {
     string_append_fmt_string(error, given->value, result);
     string_append_cstring(error, "-------------------\n");
   }
-  printf("%s", error->value);
+  for (int i = 0; i < errors->size; i++){
+    Node *node = nodeList->node[i];
+    printNode(node, "test");
+    printf("get error\n");
+    String *error = errors->strings[i];
+    printf("%s", error->value);
+  }
   printf("tests: %d,win: %d, loss: %d\n", win + loss, win, loss);
   printf("pass rate: %d%%\n", win * 100 / (win + loss));
   printf("count: %d", count);
@@ -147,8 +148,9 @@ int negation_rule(Tokens *tokens) {
       continue;
     }
     if (sign != 0 && (token->type == INTEGER || token->type == FLOAT)) {
-      char negNum[token->string->size + 1];
+      char negNum[MINUS+ NULL_TERM+ token->string->size];
       negNum[0] = '-';
+      negNum[1] = '\0';
       strcat(negNum, token->string->value);
       string_set_cstrings(token->string, negNum);
     }
