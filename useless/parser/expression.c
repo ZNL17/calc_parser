@@ -109,9 +109,9 @@ int equal(Number a, Number b) {
   case INTEGER + INTEGER:
     return a.numeric.integer == b.numeric.integer;
   case FLOAT + FLOAT:
-    return fabsf(a.numeric.decimal - b.numeric.decimal) < 0.01;
+    return fabs(a.numeric.decimal - b.numeric.decimal) < DELTA;
   case INTEGER + FLOAT:
-    return fabsf(intToFloat(a) - intToFloat(b)) < 0.01;
+    return fabs(intToFloat(a) - intToFloat(b)) < DELTA;
   }
   return 0;
 }
@@ -120,9 +120,9 @@ int testequal(Number a, Number b) {
   case INTEGER + INTEGER:
     return a.numeric.integer == b.numeric.integer;
   case FLOAT + FLOAT:
-    return fabsf(a.numeric.decimal - b.numeric.decimal) < 0.01;
+    return fabs(a.numeric.decimal - b.numeric.decimal) < DELTA;
   case INTEGER + FLOAT:
-    return fabsf(intToFloat(a) - intToFloat(b)) < 0.01;
+    return fabs(intToFloat(a) - intToFloat(b)) < DELTA;
   }
   return 0;
 }

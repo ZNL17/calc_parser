@@ -7,6 +7,7 @@
 #define DIVIDE 47
 #define LEFT 0
 #define RIGHT 1
+#define DELTA 0.001 //temp delta dont what it should be 
 typedef enum {
   Add = ADD,
   Substract = SUBSTRACT,
