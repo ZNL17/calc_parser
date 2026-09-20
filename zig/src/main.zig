@@ -2,6 +2,7 @@ const std = @import("std");
 const Io = std.Io;
 
 const zig = @import("zig");
+const parser = @import("parser.zig");
 
 pub fn main(init: std.process.Init) !void {
     // Prints to stderr, unbuffered, ignoring potential errors.
@@ -17,6 +18,7 @@ pub fn main(init: std.process.Init) !void {
     }
     if (args.len < 2) return;
     // In order to do I/O operations need an `Io` instance.
+
     const io = init.io;
 
     // Stdout is for the actual output of your application, for example if you
@@ -25,10 +27,16 @@ pub fn main(init: std.process.Init) !void {
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_file_writer: Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
     const stdout_writer = &stdout_file_writer.interface;
-    _ = try stdout_writer.write("test oder so\n");
-    try zig.printAnotherMessage(stdout_writer);
 
     try stdout_writer.flush(); // Don't forget to flush!
+    if (args.len == 2) {
+        try parser.parseText(arena, args[1], stdout_writer);
+        //try zig.printAnotherMessage(stdout_writer);
+        return;
+    }
+    if (args.len == 3 and std.mem.eql(u8, "-f", args[1])) {
+        return;
+    }
 }
 
 test "simple test" {

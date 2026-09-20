@@ -12,6 +12,7 @@ pub const Operator = enum(u8) {
     SUBSTRACT = 45,
     MULTPLY = 42,
     DIVIDE = 47,
+    _,
 
     pub fn getPriority(self: Operator) i8 {
         switch (self) {
@@ -21,7 +22,7 @@ pub const Operator = enum(u8) {
             .MULTPLY,
             .DIVIDE,
             => return 1,
-            else => unreachable,
+            _ => unreachable,
         }
     }
     pub fn cmp(self: Operator, other: Operator) Compare {
@@ -36,56 +37,69 @@ pub const Operator = enum(u8) {
     }
 };
 pub const Node = struct {
-    parent: ?[1]Node = null,
-    children: ?[]Node = null,
-    value: usize,
+    parent: ?*Node = null,
+    children: ?[]*Node = null,
+    value: u32,
 };
 
-pub const LEFT = 0;
-pub const RIGHT = 1;
+pub const LEFT = @as(u32, 0);
+pub const RIGHT = @as(u32, 1);
+
 pub const Nodes = struct {
     nodes: []Node,
     tokens: []Token,
     code: []const u8,
-    curr: usize,
+    curr: *usize,
+    pub fn getCurr(self: Nodes) *Node {
+        return &self.nodes[self.curr.*];
+    }
+    pub fn getCurrChild(self: Nodes, direction: u8) void {
+        self.curr.* = self.nodes[self.curr.*].children.?[direction].value;
+    }
     pub fn addExprToTree(self: Nodes, currNode: *Node, headNode: **Node, tailNode: **Node) void {
-        const cmp = tokenOpCmp(getToken(currNode, self.code), getToken(tailNode, self.code));
+        const cmp = tokenOpCmp(currNode, tailNode.*, self);
         switch (cmp) {
             .EQUAL,
             .LESSER,
             => {
                 var prev = tailNode.*;
                 while (prev.*.parent != null) {
-                    if (.GREATER == tokenOpCmp(getToken(currNode, self.code), getToken(prev.*.parent, self.code))) {
+                    if (.GREATER == tokenOpCmp(currNode, prev.*.parent.?, self)) {
                         break;
                     }
-                    prev = prev.*.parent;
+                    prev = prev.*.parent.?;
                 }
                 if (prev.*.parent == null) {
                     headNode.* = currNode;
                 } else {
-                    prev.*.parent[RIGHT] = currNode;
-                    currNode.*.parent = prev.*.parent;
+                    prev.*.parent.?.children.?[RIGHT] = currNode;
+                    currNode.*.parent.? = prev.*.parent.?;
                 }
-                tailNode.*.children[RIGHT] = currNode.*.children[LEFT];
-                tailNode.*.children[RIGHT].parent = tailNode.*;
-                currNode.*.children[LEFT] = prev;
-                prev.*.parent = currNode;
+                tailNode.*.children.?[RIGHT] = currNode.*.children.?[LEFT];
+                tailNode.*.children.?[RIGHT].parent.? = tailNode.*;
+                currNode.*.children.?[LEFT] = prev;
+                prev.*.parent.? = currNode;
                 tailNode.* = currNode;
             },
             else => {
-                tailNode.*.children[RIGHT] = currNode;
-                currNode.*.parent = tailNode.*;
+                tailNode.*.children.?[RIGHT] = currNode;
+                currNode.*.parent.? = tailNode.*;
                 tailNode.* = currNode;
             },
         }
     }
 };
-pub fn tokenOpCmp(curr: Token, other: Token) Compare {
-    const currVal: Operator = @intCast(lexer.getValue(curr, Nodes.code)[0]);
-    const otherVal: Operator = @intCast(lexer.getValue(other, Nodes.code)[0]);
+
+pub fn addChildNode(parent: ?*Node, child: ?*Node, direction: u32) void {
+    parent.?.*.children.?[direction] = child.?;
+}
+pub fn tokenOpCmp(curr: *Node, other: *Node, nodes: Nodes) Compare {
+    const currToken = getToken(curr, nodes.tokens);
+    const otherToken = getToken(other, nodes.tokens);
+    const currVal: Operator = @enumFromInt(lexer.getValue(currToken, nodes.code)[0]);
+    const otherVal: Operator = @enumFromInt(lexer.getValue(otherToken, nodes.code)[0]);
     return Operator.cmp(currVal, otherVal);
 }
-pub fn getToken(node: Node, tokens: []Token) Token {
-    return tokens[node.value];
+pub fn getToken(node: *Node, tokens: []Token) Token {
+    return tokens[node.*.value];
 }
