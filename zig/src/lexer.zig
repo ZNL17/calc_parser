@@ -105,11 +105,14 @@ pub fn consumeFloat(arena: *std.mem.Allocator, tokens: std.ArrayList(Token), cod
     });
     return true;
 }
+pub fn isTokenChar(token: Token, code: []u8, char: u8) bool {
+    return getValue(token, code)[0] == char;
+}
 pub fn printTokens(tokens: []Token, code: []u8) void {
     for (tokens) |token| {
-        std.debug.print("{}\n", .{tokenToString(token, code)});
+        std.debug.print("{}\n", .{getValue(token, code)});
     }
 }
-pub fn tokenToString(token: Token, code: []u8) []u8 {
+pub fn getValue(token: Token, code: []u8) []u8 {
     return code[token.start..token.end];
 }
