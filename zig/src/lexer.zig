@@ -18,9 +18,9 @@ const HORIZONTAL_TAB = @as(u8, 0x09);
 pub fn lexer(arena: std.mem.Allocator, code: []const u8) ![]Token {
     var tokens = try std.ArrayList(Token).initCapacity(arena, 100);
     var i: u32 = 0;
-    var char: u8 = undefined;
     while (i < code.len) : (i += 1) {
-        char = code[i];
+        const char = code[i];
+        if (!isInWhiteList(char)) continue;
         if (isWhiteSpace(char)) continue;
         if (isOperator(char)) {
             try tokens.append(arena, .{
@@ -40,9 +40,16 @@ pub fn lexer(arena: std.mem.Allocator, code: []const u8) ![]Token {
         }
         if (try comsumeInteger(arena, &tokens, code, &i)) continue;
         if (try consumeFloat(arena, &tokens, code, &i)) continue;
-        i -= 1;
     }
     return tokens.items;
+}
+pub fn isInWhiteList(char: u8) bool {
+    if (isWhiteSpace(char)) return true;
+    if (isNumber(char)) return true;
+    if (isOperator(char)) return true;
+    if (char == '.' or char == ',') return true;
+    if (char == '(' or char == ')') return true;
+    return false;
 }
 pub fn isWhiteSpace(char: u8) bool {
     return char == SPACE or char == HORIZONTAL_TAB;
@@ -65,35 +72,41 @@ pub fn comsumeInteger(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), c
     if (!isNumber(code[index.*])) return false;
     const start: u32 = index.*;
     index.* += 1;
-    for (code, index.*..) |char, i| {
-        index.* = @intCast(i);
+    while (index.* < code.len) : (index.* += 1) {
+        const char = code[index.*];
         if (isNumber(char)) continue;
-        if (char == '.') return false;
-        try tokens.append(arena, .{
-            .type = .INTEGER,
-            .start = start,
-            .end = index.*,
-        });
+        if (char == '.') {
+            index.* = start;
+            return false;
+        }
         break;
     }
+
+    try tokens.append(arena, .{
+        .type = .INTEGER,
+        .start = start,
+        .end = index.*,
+    });
+    index.* -= 1;
     return true;
 }
 pub fn isNumber(char: u8) bool {
-    return (char >= '0') and (char <= '9');
+    return char >= '0' and char <= '9';
 }
 pub fn consumeFloat(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), code: []const u8, index: *u32) !bool {
     if (!isNumber(code[index.*])) return false;
     const start: u32 = index.*;
     index.* += 1;
-    for (code, index.*..) |char, i| {
-        index.* = @intCast(i);
+    while (index.* < code.len) : (index.* += 1) {
+        const char = code[index.*];
         if (isNumber(char)) continue;
         if (char == '.') break;
+        index.* = start;
         return false;
     }
     index.* += 1;
-    for (code, index.*..) |char, i| {
-        index.* = @intCast(i);
+    while (index.* < code.len) : (index.* += 1) {
+        const char = code[index.*];
         if (!isNumber(char)) break;
     }
     try tokens.append(arena, .{
@@ -101,17 +114,19 @@ pub fn consumeFloat(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), cod
         .start = start,
         .end = index.*,
     });
+
+    index.* -= 1;
     return true;
 }
 pub fn isTokenChar(token: Token, code: []const u8, char: u8) bool {
     return getValue(token, code)[0] == char;
 }
-pub fn printToken(token: Token, code: []const u8)void {
-        std.debug.print("<{s}> -> ", .{getTokenType(token)});
-        std.debug.print("{d}={d}\n", .{token.start, token.end});
-        std.debug.print("<{s}>\n", .{getValue(token, code)});
+pub fn printToken(alloc: std.mem.Allocator, token: Token, code: []const u8) !void {
+    _ = try std.mem.Allocator.print(alloc, "<{s}> -> ", .{getTokenType(token)});
+    _ = try std.mem.Allocator.print(alloc, "<{s}>\n", .{getValue(token, code)});
 }
-pub fn printTokens(tokens: []Token, code: []const u8) void {
+pub fn printTokens(alloc: std.mem.Allocator, tokens: []Token, code: []const u8) !void {
+    _ = alloc;
     for (tokens) |token| {
         std.debug.print("<{s}> -> ", .{getTokenType(token)});
         std.debug.print("<{s}>\n", .{getValue(token, code)});
@@ -120,6 +135,6 @@ pub fn printTokens(tokens: []Token, code: []const u8) void {
 pub fn getValue(token: Token, code: []const u8) []const u8 {
     return code[token.start..token.end];
 }
-pub fn getTokenType(token: Token)[]const u8{
+pub fn getTokenType(token: Token) []const u8 {
     return @tagName(token.type);
 }

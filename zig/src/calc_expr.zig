@@ -26,7 +26,7 @@ pub const Number = union(Numeric) {
 pub const NumberError = error{ NO_NUMBERS, NOT_DIVISBLE_BY_ZERO, UNKNOWN_OPERATOR, EMPTY };
 pub fn calc(nodes: *Nodes) NumberError!Number {
     const node: *Node = nodes.getCurr();
-    if (node.*.children == null) {
+    if (node.*.children[expr.LEFT] == null) {
         return NumberError.NO_NUMBERS;
     }
     nodes.getCurrChild(expr.LEFT);

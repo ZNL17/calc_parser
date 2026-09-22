@@ -9,9 +9,11 @@ const Node = expr.Node;
 const Token = lex.Token;
 
 pub fn parseText(arena: std.mem.Allocator, code: []const u8, output: *std.Io.Writer) !void {
+    //_ = try std.mem.Allocator.print(arena, "string: {s}: {d}\n", .{ code, code.len });
     const nodes: *Nodes = try arena.create(Nodes);
-    nodes.tokens = try lex.lexer(arena, code);
-    lex.printTokens(nodes.tokens, code);
+    nodes.* = .{ .tokens = try lex.lexer(arena, code), .code = code, .curr = try arena.create(usize), .nodes = undefined };
+    nodes.curr.* = 0;
+
     var i: u32 = 0;
     const headNode: ?*Node = try parse(arena, nodes, &i);
     if (headNode) |_| {
@@ -42,18 +44,16 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
     var tailNode: ?*Node = null;
     var leftNode: ?*Node = null;
     var token: Token = undefined;
-    std.debug.print("startIndex: {d}\n", .{index.*});
     while (index.* < nodes.tokens.len) : (index.* += 1) {
-        std.debug.print("index: {d}\n", .{index.*});
         token = nodes.tokens[index.*];
-        lex.printToken(token, nodes.code);
+        //try lex.printToken(arena, token, nodes.code);
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, '(')) {
             index.* += 1; // TODO: could be a of by one error (didnt check for bounds?)?
             leftNode = try parse(arena, nodes, index);
             continue;
         }
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, ')')) {
-            expr.addChildNode(tailNode, leftNode, expr.RIGHT);
+            expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
             return headNode;
         }
         if (token.type == .INTEGER or token.type == .FLOAT) {
@@ -67,6 +67,7 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
         currNode.* = .{
             .value = index.*,
         };
+        expr.addChildNode(currNode, leftNode.?, expr.LEFT);
         if (tailNode == null) {
             headNode = currNode;
             tailNode = currNode;
@@ -77,6 +78,6 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
     if (tailNode == null and leftNode != null) {
         return leftNode;
     }
-    expr.addChildNode(tailNode, leftNode, expr.RIGHT);
+    expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
     return headNode;
 }

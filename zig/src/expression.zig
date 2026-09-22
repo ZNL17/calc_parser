@@ -38,7 +38,7 @@ pub const Operator = enum(u8) {
 };
 pub const Node = struct {
     parent: ?*Node = null,
-    children: ?[]*Node = null,
+    children: [2]?*Node = [_]?*Node{ null, null },
     value: u32,
 };
 
@@ -54,7 +54,7 @@ pub const Nodes = struct {
         return &self.nodes[self.curr.*];
     }
     pub fn getCurrChild(self: Nodes, direction: u8) void {
-        self.curr.* = self.nodes[self.curr.*].children.?[direction].value;
+        self.curr.* = self.nodes[self.curr.*].children[direction].?.value;
     }
     pub fn addExprToTree(self: Nodes, currNode: *Node, headNode: **Node, tailNode: **Node) void {
         const cmp = tokenOpCmp(currNode, tailNode.*, self);
@@ -72,17 +72,17 @@ pub const Nodes = struct {
                 if (prev.*.parent == null) {
                     headNode.* = currNode;
                 } else {
-                    prev.*.parent.?.children.?[RIGHT] = currNode;
+                    prev.*.parent.?.children[RIGHT] = currNode;
                     currNode.*.parent.? = prev.*.parent.?;
                 }
-                tailNode.*.children.?[RIGHT] = currNode.*.children.?[LEFT];
-                tailNode.*.children.?[RIGHT].parent.? = tailNode.*;
-                currNode.*.children.?[LEFT] = prev;
+                tailNode.*.children[RIGHT] = currNode.*.children[LEFT];
+                tailNode.*.children[RIGHT].?.parent.? = tailNode.*;
+                currNode.*.children[LEFT] = prev;
                 prev.*.parent.? = currNode;
                 tailNode.* = currNode;
             },
             else => {
-                tailNode.*.children.?[RIGHT] = currNode;
+                tailNode.*.children[RIGHT] = currNode;
                 currNode.*.parent.? = tailNode.*;
                 tailNode.* = currNode;
             },
@@ -90,8 +90,8 @@ pub const Nodes = struct {
     }
 };
 
-pub fn addChildNode(parent: ?*Node, child: ?*Node, direction: u32) void {
-    parent.?.*.children.?[direction] = child.?;
+pub fn addChildNode(parent: *Node, child: *Node, direction: u32) void {
+    parent.*.children[direction] = child;
 }
 pub fn tokenOpCmp(curr: *Node, other: *Node, nodes: Nodes) Compare {
     const currToken = getToken(curr, nodes.tokens);
