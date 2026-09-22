@@ -19,7 +19,7 @@ pub fn lexer(arena: std.mem.Allocator, code: []const u8) ![]Token {
     var tokens = try std.ArrayList(Token).initCapacity(arena, 100);
     var i: u32 = 0;
     var char: u8 = undefined;
-    while (i < code.len) : (i += i) {
+    while (i < code.len) : (i += 1) {
         char = code[i];
         if (isWhiteSpace(char)) continue;
         if (isOperator(char)) {
@@ -69,7 +69,6 @@ pub fn comsumeInteger(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), c
         index.* = @intCast(i);
         if (isNumber(char)) continue;
         if (char == '.') return false;
-        //TODO: append needs *T but i give *const T dont know how to remove const in this case (solved with using pointers)
         try tokens.append(arena, .{
             .type = .INTEGER,
             .start = start,
@@ -107,11 +106,20 @@ pub fn consumeFloat(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), cod
 pub fn isTokenChar(token: Token, code: []const u8, char: u8) bool {
     return getValue(token, code)[0] == char;
 }
-pub fn printTokens(tokens: []Token, code: []u8) void {
+pub fn printToken(token: Token, code: []const u8)void {
+        std.debug.print("<{s}> -> ", .{getTokenType(token)});
+        std.debug.print("{d}={d}\n", .{token.start, token.end});
+        std.debug.print("<{s}>\n", .{getValue(token, code)});
+}
+pub fn printTokens(tokens: []Token, code: []const u8) void {
     for (tokens) |token| {
-        std.debug.print("{}\n", .{getValue(token, code)});
+        std.debug.print("<{s}> -> ", .{getTokenType(token)});
+        std.debug.print("<{s}>\n", .{getValue(token, code)});
     }
 }
 pub fn getValue(token: Token, code: []const u8) []const u8 {
     return code[token.start..token.end];
+}
+pub fn getTokenType(token: Token)[]const u8{
+    return @tagName(token.type);
 }

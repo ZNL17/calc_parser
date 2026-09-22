@@ -11,7 +11,9 @@ const Token = lex.Token;
 pub fn parseText(arena: std.mem.Allocator, code: []const u8, output: *std.Io.Writer) !void {
     const nodes: *Nodes = try arena.create(Nodes);
     nodes.tokens = try lex.lexer(arena, code);
-    const headNode: ?*Node = try parse(arena, nodes, @constCast(&@as(u32, 0)));
+    lex.printTokens(nodes.tokens, code);
+    var i: u32 = 0;
+    const headNode: ?*Node = try parse(arena, nodes, &i);
     if (headNode) |_| {
         const result = calc.calc(nodes) catch |err| {
             switch (err) {
@@ -40,8 +42,11 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
     var tailNode: ?*Node = null;
     var leftNode: ?*Node = null;
     var token: Token = undefined;
+    std.debug.print("startIndex: {d}\n", .{index.*});
     while (index.* < nodes.tokens.len) : (index.* += 1) {
+        std.debug.print("index: {d}\n", .{index.*});
         token = nodes.tokens[index.*];
+        lex.printToken(token, nodes.code);
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, '(')) {
             index.* += 1; // TODO: could be a of by one error (didnt check for bounds?)?
             leftNode = try parse(arena, nodes, index);
