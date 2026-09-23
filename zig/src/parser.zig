@@ -47,7 +47,6 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
         }
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, ')')) {
             expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
-            nodes.addCurr(headNode);
             return headNode;
         }
         if (token.type == .INTEGER or token.type == .FLOAT) {
@@ -70,10 +69,8 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
         nodes.addExprToTree(currNode, &headNode.?, &tailNode.?);
     }
     if (tailNode == null and leftNode != null) {
-        nodes.addCurr(leftNode);
         return leftNode;
     }
     expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
-    nodes.addCurr(headNode);
     return headNode;
 }
