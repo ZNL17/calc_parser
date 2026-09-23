@@ -66,7 +66,7 @@ pub fn isOperator(char: u8) bool {
     }
 }
 pub fn isParentheses(char: u8) bool {
-    return char == '(' and char == ')';
+    return char == '(' or char == ')';
 }
 pub fn comsumeInteger(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), code: []const u8, index: *u32) !bool {
     if (!isNumber(code[index.*])) return false;
@@ -121,15 +121,14 @@ pub fn consumeFloat(arena: std.mem.Allocator, tokens: *std.ArrayList(Token), cod
 pub fn isTokenChar(token: Token, code: []const u8, char: u8) bool {
     return getValue(token, code)[0] == char;
 }
-pub fn printToken(alloc: std.mem.Allocator, token: Token, code: []const u8) !void {
-    _ = try std.mem.Allocator.print(alloc, "<{s}> -> ", .{getTokenType(token)});
-    _ = try std.mem.Allocator.print(alloc, "<{s}>\n", .{getValue(token, code)});
+pub fn printToken(writer: *std.Io.Writer, token: Token, code: []const u8) !void {
+    try writer.print("<{s}> -> ", .{getTokenType(token)});
+    try writer.print("<{s}>\n", .{getValue(token, code)});
 }
-pub fn printTokens(alloc: std.mem.Allocator, tokens: []Token, code: []const u8) !void {
-    _ = alloc;
+pub fn printTokens(writer: *std.Io.Writer, tokens: []Token, code: []const u8) !void {
     for (tokens) |token| {
-        std.debug.print("<{s}> -> ", .{getTokenType(token)});
-        std.debug.print("<{s}>\n", .{getValue(token, code)});
+        try writer.print("<{s}> -> ", .{getTokenType(token)});
+        try writer.print("<{s}>\n", .{getValue(token, code)});
     }
 }
 pub fn getValue(token: Token, code: []const u8) []const u8 {

@@ -24,28 +24,31 @@ pub const Number = union(Numeric) {
 };
 
 pub const NumberError = error{ NO_NUMBERS, NOT_DIVISBLE_BY_ZERO, UNKNOWN_OPERATOR, EMPTY };
-pub fn calc(nodes: *Nodes) NumberError!Number {
-    const node: *Node = nodes.getCurr();
+pub fn calc(node: *Node, nodes: *Nodes) !Number {
     if (node.*.children[expr.LEFT] == null) {
-        return NumberError.NO_NUMBERS;
+        return returnNumber(node, nodes);
     }
-    nodes.getCurrChild(expr.LEFT);
-    const left: Number = try calc(nodes);
-    nodes.getCurrChild(expr.RIGHT);
-    const right: Number = try calc(nodes);
-    return calc_op(getOp(node, nodes.tokens, nodes.code), left, right);
+    const left: Number = try calc(node.children[expr.LEFT].?, nodes);
+    const right: Number = try calc(node.children[expr.RIGHT].?, nodes);
+    return calc_op(getOp(node, nodes), left, right);
 }
-pub fn calc_op(op: Operator, a: Number, b: Number) NumberError!Number {
+pub fn calc_op(op: Operator, a: Number, b: Number) !Number {
     switch (op) {
-        .ADD => {
-            return add(a, b);
-        },
-        .SUBSTRACT => {},
-        .MULTPLY => {},
-        .DIVIDE => {},
+        .ADD => return add(a, b),
+        .SUBSTRACT => return sub(a, b),
+        .MULTPLY => return mult(a, b),
+        .DIVIDE => return div(a, b),
         _ => return NumberError.UNKNOWN_OPERATOR,
     }
     return NumberError.EMPTY;
+}
+pub fn returnNumber(node: *Node, nodes: *Nodes) !Number {
+    const token = expr.getToken(node, nodes.tokens);
+    switch (token.type) {
+        .INTEGER => return Number{ .integer = try std.fmt.parseInt(i32, lex.getValue(token, nodes.code), 10) },
+        .FLOAT => return Number{ .decimal = try std.fmt.parseFloat(f32, lex.getValue(token, nodes.code)) },
+        else => return NumberError.EMPTY,
+    }
 }
 pub fn add(a: Number, b: Number) !Number {
     switch (a) {
@@ -63,7 +66,59 @@ pub fn add(a: Number, b: Number) !Number {
         },
     }
 }
-pub fn numberToString(arena: std.mem.Allocator, number: Number) ![]u8 {
+
+pub fn sub(a: Number, b: Number) !Number {
+    switch (a) {
+        .integer => {
+            switch (b) {
+                .integer => return Number{ .integer = a.integer - b.integer },
+                .decimal => return Number{ .decimal = @as(f32, @floatFromInt(a.integer)) - b.decimal },
+            }
+        },
+        .decimal => {
+            switch (b) {
+                .integer => return Number{ .decimal = a.decimal - @as(f32, @floatFromInt(b.integer)) },
+                .decimal => return Number{ .decimal = a.decimal - b.decimal },
+            }
+        },
+    }
+}
+
+pub fn mult(a: Number, b: Number) !Number {
+    switch (a) {
+        .integer => {
+            switch (b) {
+                .integer => return Number{ .integer = a.integer * b.integer },
+                .decimal => return Number{ .decimal = @as(f32, @floatFromInt(a.integer)) * b.decimal },
+            }
+        },
+        .decimal => {
+            switch (b) {
+                .integer => return Number{ .decimal = a.decimal * @as(f32, @floatFromInt(b.integer)) },
+                .decimal => return Number{ .decimal = a.decimal * b.decimal },
+            }
+        },
+    }
+}
+
+pub fn div(a: Number, b: Number) !Number {
+    if (b.integer == 0) return NumberError.NOT_DIVISBLE_BY_ZERO;
+    switch (a) {
+        .integer => {
+            switch (b) {
+                .integer => return Number{ .decimal = @as(f32, @floatFromInt(a.integer)) / @as(f32, @floatFromInt(b.integer)) },
+                .decimal => return Number{ .decimal = @as(f32, @floatFromInt(a.integer)) / b.decimal },
+            }
+        },
+        .decimal => {
+            switch (b) {
+                .integer => return Number{ .decimal = a.decimal / @as(f32, @floatFromInt(b.integer)) },
+                .decimal => return Number{ .decimal = a.decimal / b.decimal },
+            }
+        },
+    }
+}
+pub fn numberToString(arena: std.mem.Allocator, number: Number) ![]const u8 {
     switch (number) {
         .integer => {
             return std.fmt.allocPrint(arena, "{d}", .{number.integer});
@@ -73,6 +128,6 @@ pub fn numberToString(arena: std.mem.Allocator, number: Number) ![]u8 {
         },
     }
 }
-pub fn getOp(node: *Node, tokens: []Token, code: []const u8) Operator {
-    return @enumFromInt(lex.getValue(expr.getToken(node, tokens), code)[0]);
+pub fn getOp(node: *Node, nodes: *Nodes) Operator {
+    return @enumFromInt(lex.getValue(expr.getToken(node, nodes.tokens), nodes.code)[0]);
 }

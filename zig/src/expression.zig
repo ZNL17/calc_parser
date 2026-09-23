@@ -49,15 +49,15 @@ pub const Nodes = struct {
     nodes: []Node,
     tokens: []Token,
     code: []const u8,
-    curr: []?*Node = [_]?*Node{null},
+    curr: []?*Node,
     pub fn addCurr(self: Nodes, node: ?*Node) void {
         self.curr[0] = node;
     }
-    pub fn getCurr(self: Nodes) *Node {
-        return self.curr[0].?;
+    pub fn getCurr(self: Nodes) ?*Node {
+        return self.curr[0];
     }
     pub fn getCurrChild(self: Nodes, direction: u8) void {
-        self.curr = self.curr[0].?.children[direction].?;
+        self.curr[0] = self.curr[0].?.children[direction];
     }
     pub fn addExprToTree(self: Nodes, currNode: *Node, headNode: **Node, tailNode: **Node) void {
         const cmp = tokenOpCmp(currNode, tailNode.*, self);
@@ -76,17 +76,17 @@ pub const Nodes = struct {
                     headNode.* = currNode;
                 } else {
                     prev.*.parent.?.children[RIGHT] = currNode;
-                    currNode.*.parent.? = prev.*.parent.?;
+                    currNode.*.parent = prev.*.parent;
                 }
                 tailNode.*.children[RIGHT] = currNode.*.children[LEFT];
-                tailNode.*.children[RIGHT].?.parent.? = tailNode.*;
+                tailNode.*.children[RIGHT].?.parent = tailNode.*;
                 currNode.*.children[LEFT] = prev;
-                prev.*.parent.? = currNode;
+                prev.*.parent = currNode;
                 tailNode.* = currNode;
             },
             else => {
                 tailNode.*.children[RIGHT] = currNode;
-                currNode.*.parent.? = tailNode.*;
+                currNode.*.parent = tailNode.*;
                 tailNode.* = currNode;
             },
         }

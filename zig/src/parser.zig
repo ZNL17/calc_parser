@@ -1,6 +1,7 @@
 const parser = @This();
 
 const std = @import("std");
+const zig = @import("zig");
 const lex = @import("lexer.zig");
 const expr = @import("expression.zig");
 const calc = @import("calc_expr.zig");
@@ -8,32 +9,25 @@ const Nodes = expr.Nodes;
 const Node = expr.Node;
 const Token = lex.Token;
 
-pub fn parseText(arena: std.mem.Allocator, code: []const u8, output: *std.Io.Writer) !void {
-    //_ = try std.mem.Allocator.print(arena, "string: {s}: {d}\n", .{ code, code.len });
+pub fn parseText(arena: std.mem.Allocator, code: []const u8, writer: *std.Io.Writer) !void {
     const nodes: *Nodes = try arena.create(Nodes);
-    nodes.* = .{ .tokens = try lex.lexer(arena, code), .code = code,  .nodes = undefined };
-
+    nodes.* = .{ .tokens = try lex.lexer(arena, code), .code = code, .nodes = undefined, .curr = @constCast(&[1]?*Node{null}) };
     var i: u32 = 0;
+    //try lex.printTokens(writer, nodes.tokens, code);
     const headNode: ?*Node = try parse(arena, nodes, &i);
+
     if (headNode) |_| {
-        const result = calc.calc(nodes) catch |err| {
-            switch (err) {
-                error.NO_NUMBERS => {
-                    return;
-                },
-                error.NOT_DIVISBLE_BY_ZERO => {
-                    return;
-                },
-                error.UNKNOWN_OPERATOR => {
-                    return;
-                },
-                error.EMPTY => {
+        const result = calc.calc(headNode.?, nodes) catch |calc_error| {
+            switch (calc_error) {
+                error.NO_NUMBERS, error.NOT_DIVISBLE_BY_ZERO, error.UNKNOWN_OPERATOR, error.EMPTY, error.Overflow, error.InvalidCharacter => |err| {
+                    try writer.print("{s}", .{@errorName(err)});
                     return;
                 },
             }
         };
-        _ = try output.write(try calc.numberToString(arena, result));
-        try output.flush();
+
+        try writer.print("{s}\n", .{try calc.numberToString(arena, result)});
+        try writer.flush();
     } else {
         return;
     }
