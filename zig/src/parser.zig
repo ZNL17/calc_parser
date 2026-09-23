@@ -46,6 +46,7 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
             continue;
         }
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, ')')) {
+            //TODO: tailNode can be null should i put a null check there?
             expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
             return headNode;
         }
