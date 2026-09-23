@@ -11,8 +11,7 @@ const Token = lex.Token;
 pub fn parseText(arena: std.mem.Allocator, code: []const u8, output: *std.Io.Writer) !void {
     //_ = try std.mem.Allocator.print(arena, "string: {s}: {d}\n", .{ code, code.len });
     const nodes: *Nodes = try arena.create(Nodes);
-    nodes.* = .{ .tokens = try lex.lexer(arena, code), .code = code, .curr = try arena.create(usize), .nodes = undefined };
-    nodes.curr.* = 0;
+    nodes.* = .{ .tokens = try lex.lexer(arena, code), .code = code,  .nodes = undefined };
 
     var i: u32 = 0;
     const headNode: ?*Node = try parse(arena, nodes, &i);
@@ -54,6 +53,7 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
         }
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, ')')) {
             expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
+            nodes.addCurr(headNode);
             return headNode;
         }
         if (token.type == .INTEGER or token.type == .FLOAT) {
@@ -76,8 +76,10 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
         nodes.addExprToTree(currNode, &headNode.?, &tailNode.?);
     }
     if (tailNode == null and leftNode != null) {
+        nodes.addCurr(leftNode);
         return leftNode;
     }
     expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
+    nodes.addCurr(headNode);
     return headNode;
 }

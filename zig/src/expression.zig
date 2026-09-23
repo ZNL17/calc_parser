@@ -49,12 +49,15 @@ pub const Nodes = struct {
     nodes: []Node,
     tokens: []Token,
     code: []const u8,
-    curr: *usize,
+    curr: []?*Node = [_]?*Node{null},
+    pub fn addCurr(self: Nodes, node: ?*Node) void {
+        self.curr[0] = node;
+    }
     pub fn getCurr(self: Nodes) *Node {
-        return &self.nodes[self.curr.*];
+        return self.curr[0].?;
     }
     pub fn getCurrChild(self: Nodes, direction: u8) void {
-        self.curr.* = self.nodes[self.curr.*].children[direction].?.value;
+        self.curr = self.curr[0].?.children[direction].?;
     }
     pub fn addExprToTree(self: Nodes, currNode: *Node, headNode: **Node, tailNode: **Node) void {
         const cmp = tokenOpCmp(currNode, tailNode.*, self);
