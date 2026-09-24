@@ -3,6 +3,7 @@ const Io = std.Io;
 
 const zig = @import("zig");
 const parser = @import("parser.zig");
+const calc = @import("calc_expr.zig");
 
 pub fn main(init: std.process.Init) !void {
     // This is appropriate for anything that lives as long as the process.
@@ -25,14 +26,35 @@ pub fn main(init: std.process.Init) !void {
 
     if (args.len == 2) {
         //TODO: how to defer flush?
-        try parser.parseText(arena, args[1], stdout_writer);
+        const number = parser.parseText(arena, args[1], stdout_writer) catch |err| {
+            handParseError(err, stdout_writer);
+            return;
+        };
+        if (number) |num| {
+            stdout_writer.print("{s}", .{calc.numberToString(arena, num)});
+        } else {
+            stdout_writer.print("couldn't parse the input\n");
+        }
         try stdout_writer.flush(); // Don't forget to flush!
         return;
     }
     if (args.len == 3 and std.mem.eql(u8, "-f", args[1])) {
-        try parser.parseFiles(arena, args[2], stdout_writer);
+        try parser.parseFiles(arena, io, args[2], stdout_writer);
         try stdout_writer.flush(); // Don't forget to flush!
         return;
+    }
+}
+pub fn handParseError(err: anyerror, writer: *std.Io.Writer) void {
+    switch (err) {
+        error.NO_NUMBERS, error.NOT_DIVISBLE_BY_ZERO, error.UNKNOWN_OPERATOR, error.EMPTY, error.Overflow, error.InvalidCharacter => |e| {
+            writer.print("{s}", .{@errorName(e)}) catch |ioErr| {
+                switch (ioErr) {
+                    error.WriteFailed => return,
+                }
+            };
+            try writer.flush();
+        },
+        else => return,
     }
 }
 

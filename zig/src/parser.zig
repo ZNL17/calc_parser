@@ -5,44 +5,39 @@ const zig = @import("zig");
 const lex = @import("lexer.zig");
 const expr = @import("expression.zig");
 const calc = @import("calc_expr.zig");
+const Number = calc.Number;
 const Nodes = expr.Nodes;
 const Node = expr.Node;
 const Token = lex.Token;
 
-pub fn parseText(arena: std.mem.Allocator, code: []const u8, writer: *std.Io.Writer) !void {
+const errorCollc = struct {
+    err: anyerror,
+    it: std.mem.SplitIterator,
+};
+pub fn parseText(arena: std.mem.Allocator, code: []const u8, writer: *std.Io.Writer) !?Number {
     const nodes: *Nodes = try arena.create(Nodes);
     nodes.* = .{ .tokens = try lex.lexer(arena, code), .code = code, .nodes = undefined, .curr = @constCast(&[1]?*Node{null}) };
     var i: u32 = 0;
-    //try lex.printTokens(writer, nodes.tokens, code);
-    const headNode: ?*Node = try parse(arena, nodes, &i);
+    //try lex.printTokenValues(writer, nodes.tokens, code);
+    const headNode: ?*Node = try parse(arena, writer, nodes, &i);
 
     if (headNode) |_| {
-        const result = calc.calc(headNode.?, nodes) catch |calc_error| {
-            switch (calc_error) {
-                error.NO_NUMBERS, error.NOT_DIVISBLE_BY_ZERO, error.UNKNOWN_OPERATOR, error.EMPTY, error.Overflow, error.InvalidCharacter => |err| {
-                    try writer.print("{s}", .{@errorName(err)});
-                    return;
-                },
-            }
-        };
-
-        try writer.print("{s}\n", .{try calc.numberToString(arena, result)});
-        try writer.flush();
+        return try calc.calc(headNode.?, nodes);
     } else {
-        return;
+        return null;
     }
 }
-pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
+pub fn parse(arena: std.mem.Allocator, writer: *std.Io.Writer, nodes: *Nodes, index: *u32) !?*Node {
     var headNode: ?*Node = null;
     var tailNode: ?*Node = null;
     var leftNode: ?*Node = null;
     var token: Token = undefined;
     while (index.* < nodes.tokens.len) : (index.* += 1) {
         token = nodes.tokens[index.*];
-        //try lex.printToken(arena, token, nodes.code);
+        //try lex.printToken(writer, token, nodes.code);
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, '(')) {
             index.* += 1; // TODO: could be a of by one error (didnt check for bounds?)?
-            leftNode = try parse(arena, nodes, index);
+            leftNode = try parse(arena, writer, nodes, index);
             continue;
         }
         if (token.type == .PARENTHESES and lex.isTokenChar(token, nodes.code, ')')) {
@@ -75,22 +70,27 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
     expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
     return headNode;
 }
-pub fn parseFiles(alloc: std.mem.Allocator, filePath: []const u8, writer: *std.Io.Writer) !void{
-    _ = alloc;
-    const io = std.Io;
-    if (std.Io.Dir.cwd().openFile( std.Io.Threaded,filePath, .{.mode= .read_only, .lock =.exclusive})) | file|{
-        defer file.close();
+pub fn parseFiles(alloc: std.mem.Allocator, io: std.Io, filePath: []const u8, writer: *std.Io.Writer) !void {
+    if (std.Io.Dir.cwd().openFile(io, filePath, .{ .mode = .read_only, .lock = .exclusive })) |file| {
+        defer file.close(io);
         var buf: [1024]u8 = undefined;
-        var reader :std.Io.File.Reader = file.reader(io, &buf);
-        while (try reader.interface.takeDelimiter('\n')) | line | {
-            writer.print("line :{s}", .{line});
-            writer.flush();
+        var reader: std.Io.File.Reader = file.reader(io, &buf);
+        const errArr = std.ArrayList(errorCollc);
+        while (try reader.interface.takeDelimiter('\n')) |line| {
+            const it = std.mem.splitAny(u8, line, ";");
+            parseText(alloc, line, writer) catch |err| collecError(alloc, errArr, err, it);
         }
-    } else | err |switch (err){
-        error.FileNotFound, error.AccesDenied => {
-            writer.print("unable to open file: {}", .{err});
-            writer.flush();
+    } else |err| switch (err) {
+        error.FileNotFound, error.AccessDenied => {
+            try writer.print("unable to open file: {}", .{err});
+            try writer.flush();
         },
         else => |e| return e,
     }
+}
+pub fn collecError(alloc: std.mem.Allocator, arr: std.ArrayList, err: anyerror, it: std.mem.SplitIterator) void {
+    _ = alloc;
+    _ = arr;
+    _ = err;
+    _ = it;
 }

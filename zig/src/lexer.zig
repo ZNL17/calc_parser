@@ -124,11 +124,19 @@ pub fn isTokenChar(token: Token, code: []const u8, char: u8) bool {
 pub fn printToken(writer: *std.Io.Writer, token: Token, code: []const u8) !void {
     try writer.print("<{s}> -> ", .{getTokenType(token)});
     try writer.print("<{s}>\n", .{getValue(token, code)});
+    try writer.flush();
 }
 pub fn printTokens(writer: *std.Io.Writer, tokens: []Token, code: []const u8) !void {
     for (tokens) |token| {
         try writer.print("<{s}> -> ", .{getTokenType(token)});
         try writer.print("<{s}>\n", .{getValue(token, code)});
+        try writer.flush();
+    }
+}
+pub fn printTokenValues(writer: *std.Io.Writer, tokens: []Token, code: []const u8) !void {
+    for (tokens) |token| {
+        try writer.print("{s}", .{getValue(token, code)});
+        try writer.flush();
     }
 }
 pub fn getValue(token: Token, code: []const u8) []const u8 {
