@@ -30,10 +30,10 @@ pub fn main(init: std.process.Init) !void {
         return;
     }
     if (args.len == 3 and std.mem.eql(u8, "-f", args[1])) {
+        try parser.parseFiles(arena, args[2], stdout_writer);
         try stdout_writer.flush(); // Don't forget to flush!
         return;
     }
-    try stdout_writer.flush(); // Don't forget to flush!
 }
 
 test "simple test" {

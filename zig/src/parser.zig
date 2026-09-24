@@ -75,3 +75,22 @@ pub fn parse(arena: std.mem.Allocator, nodes: *Nodes, index: *u32) !?*Node {
     expr.addChildNode(tailNode.?, leftNode.?, expr.RIGHT);
     return headNode;
 }
+pub fn parseFiles(alloc: std.mem.Allocator, filePath: []const u8, writer: *std.Io.Writer) !void{
+    _ = alloc;
+    const io = std.Io;
+    if (std.Io.Dir.cwd().openFile( std.Io.Threaded,filePath, .{.mode= .read_only, .lock =.exclusive})) | file|{
+        defer file.close();
+        var buf: [1024]u8 = undefined;
+        var reader :std.Io.File.Reader = file.reader(io, &buf);
+        while (try reader.interface.takeDelimiter('\n')) | line | {
+            writer.print("line :{s}", .{line});
+            writer.flush();
+        }
+    } else | err |switch (err){
+        error.FileNotFound, error.AccesDenied => {
+            writer.print("unable to open file: {}", .{err});
+            writer.flush();
+        },
+        else => |e| return e,
+    }
+}

@@ -101,19 +101,23 @@ pub fn mult(a: Number, b: Number) !Number {
     }
 }
 
-pub fn div(a: Number, b: Number) !Number {
-    if (b.integer == 0) return NumberError.NOT_DIVISBLE_BY_ZERO;
-    switch (a) {
-        .integer => {
-            switch (b) {
-                .integer => return Number{ .decimal = @as(f32, @floatFromInt(a.integer)) / @as(f32, @floatFromInt(b.integer)) },
-                .decimal => return Number{ .decimal = @as(f32, @floatFromInt(a.integer)) / b.decimal },
+pub fn div(num_a: Number, num_b: Number) !Number {
+    //TODO: leanrn how to check tagged union payload
+    switch (num_b) {
+        .integer => |b| if (b == 0) return NumberError.NOT_DIVISBLE_BY_ZERO,
+        .decimal => |b| if (b == 0) return NumberError.NOT_DIVISBLE_BY_ZERO,
+    }
+    switch (num_a) {
+        .integer => |a|{
+            switch (num_b) {
+                .integer => |b| return Number{ .decimal = @as(f32, @floatFromInt(a)) / @as(f32, @floatFromInt(b)) },
+                .decimal => |b| return Number{ .decimal = @as(f32, @floatFromInt(a)) / b },
             }
         },
-        .decimal => {
-            switch (b) {
-                .integer => return Number{ .decimal = a.decimal / @as(f32, @floatFromInt(b.integer)) },
-                .decimal => return Number{ .decimal = a.decimal / b.decimal },
+        .decimal => |a|{
+            switch (num_b) {
+                .integer => |b| return Number{ .decimal = a / @as(f32, @floatFromInt(b)) },
+                .decimal => |b| return Number{ .decimal = a / b },
             }
         },
     }
